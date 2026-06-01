@@ -102,7 +102,7 @@ canvas { display: block; }
 <body>
 
 <div id="loading-overlay">
-    <div class="loading-text">正在加载粒子系统...</div>
+    <div class="loading-text" id="loading-text">正在加载粒子系统...</div>
     <div class="loading-dots"><span></span><span></span><span></span></div>
 </div>
 
@@ -713,6 +713,9 @@ function animate(timestamp) {
     material.size = 0.14 + Math.sin(elapsed * 3.0) * 0.015;
 
     renderer.render(scene, camera);
+
+    // Signal first frame rendered
+    if (!firstFrameRendered) firstFrameRendered = true;
 }
 
 // ==================== Mouse Fallback ====================
@@ -948,6 +951,18 @@ window.addEventListener('keydown', (e) => {
 });
 
 // ==================== Init ====================
+let firstFrameRendered = false;
+
+function hideLoading() {
+    if (loadingOverlay.classList.contains('hidden')) return;
+    loadingOverlay.classList.add('hidden');
+    setTimeout(() => {
+        if (loadingOverlay.parentNode) {
+            loadingOverlay.parentNode.removeChild(loadingOverlay);
+        }
+    }, 700);
+}
+
 function init() {
     setupMouse();
     setupMediaPipe();
@@ -955,16 +970,22 @@ function init() {
     // Start animation
     requestAnimationFrame(animate);
 
-    // Hide loading overlay after a short delay
-    setTimeout(() => {
-        loadingOverlay.classList.add('hidden');
-        // Remove overlay after transition
-        setTimeout(() => {
-            if (loadingOverlay.parentNode) {
-                loadingOverlay.parentNode.removeChild(loadingOverlay);
-            }
-        }, 700);
-    }, 800);
+    // Hide loading after first frame renders (min 800ms for UX)
+    const minTime = 800;
+    const startTime = performance.now();
+    function checkFirstFrame() {
+        if (firstFrameRendered && performance.now() - startTime >= minTime) {
+            hideLoading();
+        } else if (performance.now() - startTime > 15000) {
+            // Timeout fallback after 15s
+            document.getElementById('loading-text').textContent = 'CDN加载较慢，请耐心等待...';
+            if (firstFrameRendered) hideLoading();
+            else requestAnimationFrame(checkFirstFrame);
+        } else {
+            requestAnimationFrame(checkFirstFrame);
+        }
+    }
+    requestAnimationFrame(checkFirstFrame);
 }
 
 // Start when DOM is ready
