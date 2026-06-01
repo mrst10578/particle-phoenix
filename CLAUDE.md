@@ -40,5 +40,3 @@ README.md
 
 ## Git 配置
 - 仓库: https://github.com/hvccj/particle-rose
-- 用户名: HVCCJ
-- 邮箱: 2597645889@qq.com
