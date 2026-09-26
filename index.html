@@ -32,7 +32,6 @@
         <strong>Phoenix Lab</strong>
         <small>solid · particle · morph</small>
       </div>
-      <button class="icon-btn" data-panel-toggle aria-expanded="true" aria-label="Toggle control panel">☰</button>
     </div>
 
     <div class="panel-body">
@@ -55,28 +54,9 @@
         </div>
       </section>
 
-      <section class="control">
-        <label for="density">Particle density</label>
-        <div class="range-row">
-          <input id="density" data-density type="range" min="25" max="100" value="72">
-        </div>
-      </section>
-
-      <section class="control">
-        <label for="quality">Quality</label>
-        <div class="select-row">
-          <select id="quality" data-quality>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-        </div>
-      </section>
-
-      <section class="control">
-        <div class="toggle-row"><span>Bloom</span><input data-bloom type="checkbox" checked></div>
-        <div class="toggle-row"><span>Auto rotate</span><input data-rotate type="checkbox" checked></div>
-        <div class="toggle-row"><span>Living motion</span><input data-motion type="checkbox" checked></div>
+      <section class="quality-lock" aria-label="Rendering quality">
+        <strong>ULTRA</strong>
+        <span>Maximum rendering · living motion locked on</span>
       </section>
 
       <div class="stats" data-stats aria-live="polite"></div>
