@@ -188,7 +188,7 @@ function applyQuality(next, automatic = false) {
   const qualitySelect = document.querySelector('[data-quality]');
   const densityInput = document.querySelector('[data-density]');
   if (qualitySelect) qualitySelect.value = next;
-  if (densityInput && automatic) densityInput.value = String(Math.round(profile.density * 100));
+  if (densityInput) densityInput.value = String(Math.round(profile.density * 100));
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, profile.dpr));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   composer.setSize(window.innerWidth, window.innerHeight);
