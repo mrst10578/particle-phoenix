@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createRoseShape, createCrownShape, createScatterShape } from './shapes.js';
+import { createRoseShape, createCrownShape, createScatterShape } from './shapes.js?v=2.1.1';
 
 function resample(source, count) {
   const srcCount = source.positions.length / 3;
