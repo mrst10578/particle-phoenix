@@ -13,7 +13,8 @@ This repository started as a fork of the original 3D Particle Rose experiment an
 - Solid / hybrid / particle viewing modes.
 - 3D particle morphs: Phoenix → Crimson Rose → Crown → Scatter.
 - Touch/mouse orbit and zoom.
-- Mobile-oriented quality presets, DPR limits, particle density control, and automatic fallback.
+- Menu-free presentation: no visible settings/control panel overlays the scene.
+- Ultra rendering is locked on with high DPR, dense particles, bloom, shadows, and no automatic quality downgrade.
 - Reduced-motion support.
 - Static hosting and GitHub Pages compatibility.
 - External Phoenix consolidated to one mesh for low draw-call cost; internal GLB and procedural Phoenix are retained as fallbacks.
@@ -35,7 +36,6 @@ Then open `http://localhost:8080`.
 - Wheel / pinch: zoom.
 - Keys `1`, `2`, `3`, `4`: Phoenix, Rose, Crown, Scatter.
 - `R`: reset camera.
-- The on-screen lab panel controls rendering mode, particle density, quality, bloom, rotation, and motion.
 
 ## Architecture
 
@@ -46,7 +46,6 @@ src/
   phoenix.js      volumetric phoenix geometry + shared particle target contract
   particles.js    particle engine and morph state
   shapes.js       rose / crown / scatter 3D targets
-  ui.js           lab controls
   styles.css      responsive royal UI
 docs/
   PRODUCT_SPEC.md
@@ -64,7 +63,7 @@ The Lab now loads `models/royal-phoenix-external-v1.glb` by default, normalizes 
 { positions: Float32Array, colors: Float32Array }
 ```
 
-Any future sculpted or image-to-3D GLB can still replace the default without changing the particle system or UI: open the Lab with `?model=...`. Use `?procedural=1` to force the final procedural fallback.
+Any future sculpted or image-to-3D GLB can still replace the default without changing the particle system: open the Lab with `?model=...`. Use `?procedural=1` to force the final procedural fallback.
 
 ## External asset attribution
 
