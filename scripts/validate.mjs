@@ -56,7 +56,7 @@ for (const token of [
   'triggerRoyalPulse',
   'computeRenderPixelRatio',
   'particleBudget',
-  'firstPaintMs'
+  'firstRenderMs'
 ]) {
   if (!app.includes(token)) {
     console.error('app.js is missing V2 integration token:', token);
