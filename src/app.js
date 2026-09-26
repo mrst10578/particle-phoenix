@@ -7,7 +7,6 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createRoyalPhoenix } from './phoenix.js';
 import { loadPhoenixGLB } from './glb-adapter.js';
 import { createPhoenixParticles } from './particles.js';
-import { createLabUI } from './ui.js';
 
 const viewport = document.querySelector('[data-viewport]');
 const loading = document.querySelector('[data-loading]');
@@ -232,7 +231,6 @@ function setDisplay(mode) {
     phoenix.setOpacity(0.72);
     particleSystem.points.visible = true;
   }
-  ui.activateDisplay(mode);
 }
 
 function setShape(name) {
@@ -241,8 +239,6 @@ function setShape(name) {
   if (name !== 'phoenix') {
     setDisplay('particle');
   }
-  ui.activateShape(name);
-  ui.setStatus(name === 'phoenix' ? 'Royal Phoenix target' : name.charAt(0).toUpperCase() + name.slice(1) + ' morph target');
 }
 
 function resetCamera() {
@@ -251,21 +247,9 @@ function resetCamera() {
   controls.update();
 }
 
-const ui = createLabUI({
-  onDisplay: setDisplay,
-  onShape: setShape,
-
-  onReset: resetCamera,
-  onFullscreen: () => {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else document.documentElement.requestFullscreen?.().catch(() => {});
-  }
-});
-
 setDisplay('hybrid');
 particleSystem.setTarget('phoenix', { seconds: 2.15 });
 applyUltraQuality();
-ui.setStatus('Building royal phoenix…');
 
 const clock = new THREE.Clock();
 
@@ -301,13 +285,6 @@ function animate() {
   stars.rotation.y += dt * 0.012 * motion;
   updateFps(dt);
 
-  ui.setStats({
-    fps,
-    particles: particleSystem.activeCount,
-    quality,
-    mode: shapeMode + '/' + displayMode
-  });
-
   composer.render();
 }
 
@@ -327,7 +304,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.__PHOENIX_LAB__ = {
-  version: '1.2.0',
+  version: '1.3.0',
   setShape,
   setDisplay,
   phoenixAdapter: phoenix.adapterContract,
@@ -336,12 +313,5 @@ window.__PHOENIX_LAB__ = {
 
 requestAnimationFrame(() => {
   loading?.classList.add('is-hidden');
-  const sourceLabels = {
-    'external-glb': 'External Royal Phoenix ready',
-    'custom-glb': 'Custom Royal Phoenix ready',
-    'internal-glb': 'Internal GLB fallback ready',
-    procedural: 'Procedural fallback ready'
-  };
-  ui.setStatus(sourceLabels[modelSource] || 'Royal Phoenix ready');
 });
 animate();
