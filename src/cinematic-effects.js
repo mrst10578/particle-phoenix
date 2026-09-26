@@ -134,6 +134,7 @@ function makeAura(anchors, { count, kind, pixelRatio }) {
       varying float vSeed;
       varying float vKind;
       uniform float uPulse;
+      uniform float uIntro;
       void main() {
         vec2 q = gl_PointCoord - 0.5;
         float d = length(q) * 2.0;
