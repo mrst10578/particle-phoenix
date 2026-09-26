@@ -2,7 +2,6 @@ export function createLabUI(callbacks) {
   const root = document.querySelector('[data-lab-panel]');
   const stats = document.querySelector('[data-stats]');
   const status = document.querySelector('[data-status]');
-  const panelToggle = document.querySelector('[data-panel-toggle]');
 
   function activate(selector, value) {
     root.querySelectorAll(selector).forEach((el) => {
@@ -24,33 +23,8 @@ export function createLabUI(callbacks) {
     });
   });
 
-  document.querySelector('[data-density]')?.addEventListener('input', (event) => {
-    callbacks.onDensity?.(Number(event.target.value) / 100);
-  });
-
-  document.querySelector('[data-quality]')?.addEventListener('change', (event) => {
-    callbacks.onQuality?.(event.target.value);
-  });
-
-  document.querySelector('[data-bloom]')?.addEventListener('change', (event) => {
-    callbacks.onBloom?.(event.target.checked);
-  });
-
-  document.querySelector('[data-rotate]')?.addEventListener('change', (event) => {
-    callbacks.onAutoRotate?.(event.target.checked);
-  });
-
-  document.querySelector('[data-motion]')?.addEventListener('change', (event) => {
-    callbacks.onMotion?.(event.target.checked);
-  });
-
   document.querySelector('[data-reset]')?.addEventListener('click', () => callbacks.onReset?.());
   document.querySelector('[data-fullscreen]')?.addEventListener('click', () => callbacks.onFullscreen?.());
-
-  panelToggle?.addEventListener('click', () => {
-    root.classList.toggle('is-collapsed');
-    panelToggle.setAttribute('aria-expanded', String(!root.classList.contains('is-collapsed')));
-  });
 
   return {
     setStatus(text) {
