@@ -102,14 +102,22 @@ varying float vRoyalHeight;
 varying vec3 vRoyalLocal;`
       )
       .replace(
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
+float royalMicro = 0.5 + 0.5 * sin(vRoyalLocal.x * 0.73 + vRoyalLocal.y * 0.41 + vRoyalLocal.z * 0.57);
+roughnessFactor = clamp(roughnessFactor + (royalMicro - 0.5) * 0.085, 0.18, 0.52);`
+      )
+      .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
 float royalVein = 0.5 + 0.5 * sin(vRoyalLocal.x * 0.31 + vRoyalLocal.y * 0.23 - vRoyalLocal.z * 0.17 - uRoyalTime * 1.6);
 float royalEdgeGlow = smoothstep(0.76, 1.0, vRoyalEdge);
 float royalTailHeat = pow(clamp(1.0 - vRoyalHeight, 0.0, 1.0), 2.2);
+float royalFresnel = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 2.4);
 float royalEmber = royalEdgeGlow * royalVein * (0.035 + royalTailHeat * 0.055);
 royalEmber += uRoyalPulse * (0.07 + royalEdgeGlow * 0.16);
-totalEmissiveRadiance += vec3(1.0, 0.075, 0.018) * royalEmber;`
+totalEmissiveRadiance += vec3(1.0, 0.075, 0.018) * royalEmber;
+totalEmissiveRadiance += vec3(0.36, 0.07, 0.018) * royalFresnel * royalEdgeGlow * (0.05 + uRoyalPulse * 0.04);`
       );
 
     material.userData.royalShader = shader;
