@@ -89,7 +89,8 @@ function makeAura(anchors, { count, kind, pixelRatio }) {
     uMotion: { value: 1 },
     uPulse: { value: 0 },
     uPixelRatio: { value: pixelRatio },
-    uKind: { value: kind === 'ember' ? 1 : 0 }
+    uKind: { value: kind === 'ember' ? 1 : 0 },
+    uIntro: { value: 0 }
   };
 
   const material = new THREE.ShaderMaterial({
@@ -106,6 +107,7 @@ function makeAura(anchors, { count, kind, pixelRatio }) {
       uniform float uPulse;
       uniform float uPixelRatio;
       uniform float uKind;
+      uniform float uIntro;
       varying vec3 vColor;
       varying float vSeed;
       varying float vKind;
@@ -140,6 +142,7 @@ function makeAura(anchors, { count, kind, pixelRatio }) {
         float core = smoothstep(0.34, 0.0, d);
         float alpha = mix(0.22, 0.66, vKind) * soft * (0.55 + core * 0.65);
         alpha *= 0.72 + fract(vSeed * 11.7) * 0.28;
+        alpha *= uIntro;
         vec3 c = vColor * (0.72 + core * mix(0.25, 1.3, vKind));
         c += vec3(1.0, 0.19, 0.035) * core * uPulse * vKind * 0.32;
         gl_FragColor = vec4(c, alpha);
@@ -387,12 +390,12 @@ export function createCinematicEnvironment({
     ember.material.uniforms.uTime.value = time;
     ember.material.uniforms.uMotion.value = activeMotion;
     ember.material.uniforms.uPulse.value = pulse;
+    ember.material.uniforms.uIntro.value = intro;
     ash.material.uniforms.uTime.value = time;
     ash.material.uniforms.uMotion.value = activeMotion;
     ash.material.uniforms.uPulse.value = pulse;
+    ash.material.uniforms.uIntro.value = intro * 0.72;
 
-    ember.material.opacity = intro;
-    ash.material.opacity = intro * 0.72;
     petals.material.opacity = (0.38 + pulse * 0.14) * intro;
     petals.update(time, activeMotion, pulse);
 
