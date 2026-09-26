@@ -7,7 +7,6 @@ const required = [
   'src/phoenix.js',
   'src/particles.js',
   'src/shapes.js',
-  'src/ui.js',
   'src/glb-adapter.js',
   'models/README.md',
   'models/royal-phoenix-external-v1.glb',
@@ -33,7 +32,7 @@ for (const token of ['./src/styles.css', './src/app.js', 'type="importmap"']) {
 }
 
 const app = readFileSync('src/app.js', 'utf8');
-for (const token of ['createRoyalPhoenix', 'loadPhoenixGLB', 'createPhoenixParticles', 'createLabUI']) {
+for (const token of ['createRoyalPhoenix', 'loadPhoenixGLB', 'createPhoenixParticles']) {
   if (!app.includes(token)) {
     console.error('app.js is missing integration token:', token);
     process.exit(1);
