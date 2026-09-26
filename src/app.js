@@ -22,16 +22,17 @@ const camera = new THREE.PerspectiveCamera(43, window.innerWidth / window.innerH
 camera.position.set(0, 0.15, isMobile ? 12.7 : 11.2);
 
 const renderer = new THREE.WebGLRenderer({
-  antialias: !isMobile,
+  antialias: true,
   alpha: false,
   powerPreference: 'high-performance'
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.35 : 1.8));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.18;
-renderer.shadowMap.enabled = false;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 viewport.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -44,15 +45,15 @@ controls.maxPolarAngle = Math.PI * 0.76;
 controls.minPolarAngle = Math.PI * 0.24;
 controls.target.set(0, -0.35, 0);
 controls.autoRotate = !reducedMotion;
-controls.autoRotateSpeed = 0.36;
+controls.autoRotateSpeed = 0.52;
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  isMobile ? 0.58 : 0.82,
-  0.72,
-  0.28
+  1.08,
+  0.82,
+  0.22
 );
 composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
@@ -92,8 +93,8 @@ const modelCandidates = proceduralOnly ? [] : [
 for (const candidate of modelCandidates) {
   try {
     phoenix = await loadPhoenixGLB(candidate.url, {
-      sampleCount: isMobile ? 8500 : 14000,
-      targetSpan: isMobile ? 7.35 : 8.1,
+      sampleCount: isMobile ? 18000 : 28000,
+      targetSpan: isMobile ? 7.55 : 8.25,
       royalize: true
     });
     modelSource = candidate.source;
@@ -103,20 +104,24 @@ for (const candidate of modelCandidates) {
   }
 }
 
-phoenix.group.scale.setScalar(isMobile ? 0.92 : 1);
+phoenix.group.scale.setScalar(isMobile ? 0.94 : 1);
 phoenix.group.position.y = 0.08;
-scene.add(phoenix.group);
+
+const motionRoot = new THREE.Group();
+motionRoot.name = 'RoyalPhoenixMotionRoot';
+motionRoot.add(phoenix.group);
+scene.add(motionRoot);
 
 const particleSystem = createPhoenixParticles({
   phoenixTargets: phoenix.anchors,
-  count: isMobile ? 6500 : 9000
+  count: isMobile ? 14000 : 22000
 });
 particleSystem.points.position.copy(phoenix.group.position);
 particleSystem.points.scale.copy(phoenix.group.scale);
-scene.add(particleSystem.points);
+motionRoot.add(particleSystem.points);
 
 function makeStars() {
-  const count = isMobile ? 320 : 650;
+  const count = isMobile ? 720 : 1400;
   const positions = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
     const r = 15 + Math.random() * 26;
@@ -141,7 +146,7 @@ function makeStars() {
 }
 
 function makeEmbers() {
-  const count = isMobile ? 90 : 180;
+  const count = isMobile ? 220 : 420;
   const positions = new Float32Array(count * 3);
   const speed = new Float32Array(count);
   const phase = new Float32Array(count);
@@ -188,34 +193,25 @@ const stars = makeStars();
 const embers = makeEmbers();
 
 const qualityProfiles = {
-  high: { dpr: 1.85, bloom: 0.88, density: 1 },
-  medium: { dpr: 1.35, bloom: 0.6, density: 0.72 },
-  low: { dpr: 1, bloom: 0, density: 0.45 }
+  ultra: { dpr: 3, bloom: 1.08, density: 1 }
 };
 
-let quality = isMobile ? 'medium' : 'high';
-let bloomEnabled = quality !== 'low';
+const quality = 'ultra';
+const bloomEnabled = true;
 let displayMode = 'hybrid';
-let motionEnabled = !reducedMotion;
+const motionEnabled = !reducedMotion;
 let shapeMode = 'phoenix';
 let fps = 60;
 let fpsAccumulator = 0;
 let fpsFrames = 0;
-let autoQualityCooldown = 0;
 
-function applyQuality(next, automatic = false) {
-  quality = next;
-  const profile = qualityProfiles[next];
-  const qualitySelect = document.querySelector('[data-quality]');
-  const densityInput = document.querySelector('[data-density]');
-  if (qualitySelect) qualitySelect.value = next;
-  if (densityInput) densityInput.value = String(Math.round(profile.density * 100));
+function applyUltraQuality() {
+  const profile = qualityProfiles.ultra;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, profile.dpr));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   composer.setSize(window.innerWidth, window.innerHeight);
   particleSystem.setDensity(profile.density);
-  bloomPass.strength = bloomEnabled ? profile.bloom : 0;
-  if (!automatic) autoQualityCooldown = 8;
+  bloomPass.strength = profile.bloom;
 }
 
 function setDisplay(mode) {
@@ -254,14 +250,7 @@ function resetCamera() {
 const ui = createLabUI({
   onDisplay: setDisplay,
   onShape: setShape,
-  onDensity: (value) => particleSystem.setDensity(value),
-  onQuality: (value) => applyQuality(value),
-  onBloom: (enabled) => {
-    bloomEnabled = enabled;
-    bloomPass.strength = enabled ? qualityProfiles[quality].bloom : 0;
-  },
-  onAutoRotate: (enabled) => { controls.autoRotate = enabled && !reducedMotion; },
-  onMotion: (enabled) => { motionEnabled = enabled && !reducedMotion; },
+
   onReset: resetCamera,
   onFullscreen: () => {
     if (document.fullscreenElement) document.exitFullscreen();
@@ -271,7 +260,7 @@ const ui = createLabUI({
 
 setDisplay('hybrid');
 particleSystem.setTarget('phoenix', { seconds: 2.15 });
-applyQuality(quality);
+applyUltraQuality();
 ui.setStatus('Building royal phoenix…');
 
 const clock = new THREE.Clock();
@@ -279,17 +268,10 @@ const clock = new THREE.Clock();
 function updateFps(dt) {
   fpsAccumulator += dt;
   fpsFrames++;
-  autoQualityCooldown = Math.max(0, autoQualityCooldown - dt);
   if (fpsAccumulator >= 1) {
     fps = fpsFrames / fpsAccumulator;
     fpsAccumulator = 0;
     fpsFrames = 0;
-
-    if (autoQualityCooldown <= 0) {
-      if (fps < 38 && quality === 'high') applyQuality('medium', true);
-      else if (fps < 31 && quality === 'medium') applyQuality('low', true);
-      autoQualityCooldown = 7;
-    }
   }
 }
 
@@ -299,11 +281,20 @@ function animate() {
   const time = clock.elapsedTime;
   const motion = motionEnabled ? 1 : 0;
 
+  if (motion) {
+    motionRoot.position.y = Math.sin(time * 0.72) * 0.13;
+    motionRoot.position.x = Math.sin(time * 0.31) * 0.035;
+    motionRoot.rotation.z = Math.sin(time * 0.42) * 0.012;
+    motionRoot.rotation.x = Math.sin(time * 0.29) * 0.006;
+    const breathe = 1 + Math.sin(time * 1.18) * 0.0065;
+    motionRoot.scale.setScalar(breathe);
+  }
+
   controls.update();
   phoenix.update(time, motion);
   particleSystem.update(dt, time, motion);
   embers.update(dt, time, motion);
-  stars.rotation.y += dt * 0.008 * motion;
+  stars.rotation.y += dt * 0.012 * motion;
   updateFps(dt);
 
   ui.setStats({
@@ -313,8 +304,7 @@ function animate() {
     mode: shapeMode + '/' + displayMode
   });
 
-  if (bloomEnabled && quality !== 'low') composer.render();
-  else renderer.render(scene, camera);
+  composer.render();
 }
 
 window.addEventListener('resize', () => {
@@ -333,7 +323,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.__PHOENIX_LAB__ = {
-  version: '1.1.0',
+  version: '1.2.0',
   setShape,
   setDisplay,
   phoenixAdapter: phoenix.adapterContract,
