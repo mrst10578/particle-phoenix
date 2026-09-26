@@ -257,6 +257,92 @@ function resetCamera() {
   controls.update();
 }
 
+function capturePhoenixProbe(size = 512) {
+  if (!captureMode) return null;
+
+  const probeSize = THREE.MathUtils.clamp(Math.floor(size), 128, 768);
+  const target = new THREE.WebGLRenderTarget(probeSize, probeSize, {
+    type: THREE.UnsignedByteType,
+    depthBuffer: true,
+    stencilBuffer: false
+  });
+  target.texture.colorSpace = THREE.SRGBColorSpace;
+
+  const previousTarget = renderer.getRenderTarget();
+  const previousAspect = camera.aspect;
+  const previousHeroFxVisible = heroFx.group.visible;
+  const previousStarsVisible = stars.visible;
+  const previousParticleVisible = particleSystem.points.visible;
+  const previousPhoenixVisible = phoenix.group.visible;
+  const previousFeathersVisible = featherAccents.mesh.visible;
+
+  heroFx.group.visible = false;
+  stars.visible = false;
+  particleSystem.points.visible = false;
+  phoenix.group.visible = true;
+  featherAccents.mesh.visible = true;
+  phoenix.setOpacity?.(1);
+
+  camera.aspect = 1;
+  camera.updateProjectionMatrix();
+
+  renderer.setRenderTarget(target);
+  renderer.clear();
+  renderer.render(scene, camera);
+
+  const pixels = new Uint8Array(probeSize * probeSize * 4);
+  renderer.readRenderTargetPixels(target, 0, 0, probeSize, probeSize, pixels);
+
+  let lit = 0;
+  let bright = 0;
+  let totalLuma = 0;
+  let maxLuma = 0;
+  const count = probeSize * probeSize;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const luma = pixels[i] * 0.2126 + pixels[i + 1] * 0.7152 + pixels[i + 2] * 0.0722;
+    totalLuma += luma;
+    if (luma > 8) lit++;
+    if (luma > 28) bright++;
+    if (luma > maxLuma) maxLuma = luma;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = probeSize;
+  canvas.height = probeSize;
+  const ctx = canvas.getContext('2d');
+  const image = ctx.createImageData(probeSize, probeSize);
+  const rowBytes = probeSize * 4;
+  for (let y = 0; y < probeSize; y++) {
+    const src = (probeSize - 1 - y) * rowBytes;
+    const dst = y * rowBytes;
+    image.data.set(pixels.subarray(src, src + rowBytes), dst);
+  }
+  ctx.putImageData(image, 0, 0);
+  const dataUrl = canvas.toDataURL('image/png');
+
+  renderer.setRenderTarget(previousTarget);
+  target.dispose();
+
+  camera.aspect = previousAspect;
+  camera.updateProjectionMatrix();
+  heroFx.group.visible = previousHeroFxVisible;
+  stars.visible = previousStarsVisible;
+  particleSystem.points.visible = previousParticleVisible;
+  phoenix.group.visible = previousPhoenixVisible;
+  featherAccents.mesh.visible = previousFeathersVisible;
+  setDisplay(displayMode);
+
+  return {
+    width: probeSize,
+    height: probeSize,
+    litRatio: lit / count,
+    brightRatio: bright / count,
+    meanLuma: totalLuma / count,
+    maxLuma,
+    dataUrl
+  };
+}
+
 function triggerRoyalPulse({ sensory = true, amount = 1 } = {}) {
   heroFx.triggerPulse(amount);
   particleSystem.triggerPulse(amount);
@@ -391,6 +477,7 @@ window.__PHOENIX_LAB__ = {
   pulse: (amount = 1) => triggerRoyalPulse({ sensory: false, amount }),
   awaken: awakenSequence,
   resetCamera,
+  captureProbe: captureMode ? capturePhoenixProbe : undefined,
   phoenixAdapter: phoenix.adapterContract,
   getState: () => ({
     quality,
