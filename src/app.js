@@ -9,6 +9,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createRoyalPhoenix } from './phoenix.js';
 import { loadPhoenixGLB } from './glb-adapter.js';
 import { createPhoenixParticles } from './particles.js';
+import { createFeatherAccents } from './feather-accents.js';
 import { createCinematicEnvironment } from './cinematic-effects.js';
 import { CinematicShader } from './postfx.js';
 import { createRoyalAudioCue } from './royal-audio.js';
@@ -161,6 +162,13 @@ particleSystem.points.position.copy(phoenix.group.position);
 particleSystem.points.scale.copy(phoenix.group.scale);
 motionRoot.add(particleSystem.points);
 
+const featherAccents = createFeatherAccents(phoenix.anchors, {
+  count: isMobile ? 76 : 132
+});
+featherAccents.mesh.position.copy(phoenix.group.position);
+featherAccents.mesh.scale.copy(phoenix.group.scale);
+motionRoot.add(featherAccents.mesh);
+
 const heroFx = createCinematicEnvironment({
   scene,
   anchors: phoenix.anchors,
@@ -309,6 +317,7 @@ function animate() {
   phoenix.update(time, motion, dt);
   particleSystem.update(dt, time, motion);
   heroFx.update(dt, time, motion);
+  featherAccents.update(time, motion, heroFx.pulse);
   stars.rotation.y += dt * 0.010 * motion;
   stars.rotation.x = Math.sin(time * 0.08) * 0.008 * motion;
 
