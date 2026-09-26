@@ -35,7 +35,9 @@ const loading = document.querySelector('[data-loading]');
 const params = new URLSearchParams(window.location.search);
 const captureMode = params.get('capture') === '1';
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 820;
+const forcedProfile = params.get('profile');
+const isMobile = forcedProfile === 'mobile'
+  || (forcedProfile !== 'desktop' && (window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 820));
 const hardwareCores = navigator.hardwareConcurrency || (isMobile ? 4 : 8);
 const deviceMemory = navigator.deviceMemory || (isMobile ? 4 : 8);
 const lowPowerMobile = isMobile && (hardwareCores <= 4 || deviceMemory <= 4);
@@ -564,6 +566,7 @@ window.__PHOENIX_LAB__ = {
     menu: false,
     captureMode,
     performanceProfile,
+    forcedProfile,
     renderPixelRatio,
     realtimeShadows: false,
     particleBudget,
