@@ -1,92 +1,16 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js';
-
-const ROYAL = {
-  obsidian: new THREE.Color(0x10070a),
-  charcoal: new THREE.Color(0x241016),
-  burgundy: new THREE.Color(0x4b0718),
-  crimson: new THREE.Color(0xa10d2d),
-  scarlet: new THREE.Color(0xd63743),
-  gold: new THREE.Color(0xd6ac58),
-  ember: new THREE.Color(0xff653b)
-};
+import { applyRoyalMaterial, updateRoyalMaterials, ROYAL } from './royal-material.js';
 
 function materialColor(material) {
   if (Array.isArray(material)) return materialColor(material[0]);
   return material?.color?.clone?.() ?? ROYAL.crimson.clone();
 }
 
-function royalColorForPoint(x, y, z, box, out = new THREE.Color()) {
-  const size = new THREE.Vector3();
-  const center = new THREE.Vector3();
-  box.getSize(size);
-  box.getCenter(center);
-
-  const nx = Math.min(1, Math.abs(x - center.x) / Math.max(size.x * 0.5, 1e-5));
-  const ny = THREE.MathUtils.clamp((y - box.min.y) / Math.max(size.y, 1e-5), 0, 1);
-  const nz = Math.min(1, Math.abs(z - center.z) / Math.max(size.z * 0.5, 1e-5));
-  const edge = Math.max(nx, nz);
-
-  const crimsonMask = THREE.MathUtils.clamp(0.18 + edge * 0.68 + (1 - ny) * 0.12, 0, 1);
-  const goldTip = THREE.MathUtils.smoothstep(edge, 0.80, 1.0);
-  const crownGold = THREE.MathUtils.smoothstep(ny, 0.87, 1.0) * 0.72;
-  const goldMask = Math.max(goldTip * 0.68, crownGold);
-  const shadowMask = THREE.MathUtils.clamp((1 - edge) * 0.58 + (0.52 - ny) * 0.18, 0, 0.72);
-
-  out.copy(ROYAL.burgundy)
-    .lerp(ROYAL.crimson, crimsonMask * 0.82)
-    .lerp(ROYAL.obsidian, shadowMask)
-    .lerp(ROYAL.gold, goldMask);
-
-  if (edge > 0.94 && ny < 0.72) {
-    out.lerp(ROYAL.ember, 0.16);
-  }
-
-  return out;
-}
-
-function applyRoyalMaterial(mesh) {
-  const geometry = mesh.geometry;
-  if (!geometry?.attributes?.position) return;
-
-  geometry.computeBoundingBox();
-  geometry.computeVertexNormals();
-  const box = geometry.boundingBox;
-  const position = geometry.attributes.position;
-  const colors = new Float32Array(position.count * 3);
-  const color = new THREE.Color();
-
-  for (let i = 0; i < position.count; i++) {
-    royalColorForPoint(position.getX(i), position.getY(i), position.getZ(i), box, color);
-    colors[i * 3] = color.r;
-    colors[i * 3 + 1] = color.g;
-    colors[i * 3 + 2] = color.b;
-  }
-
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-  const material = new THREE.MeshPhysicalMaterial({
-    vertexColors: true,
-    metalness: 0.34,
-    roughness: 0.34,
-    clearcoat: 0.34,
-    clearcoatRoughness: 0.28,
-    sheen: 0.36,
-    sheenColor: new THREE.Color(0x7c102a),
-    emissive: new THREE.Color(0x170106),
-    emissiveIntensity: 0.15,
-    side: THREE.DoubleSide
-  });
-
-  material.name = 'LoPRaxRoyalPhoenix';
-  mesh.material = material;
-}
-
 function normalizeModel(group, sourceScene, targetSpan) {
   const offsetRoot = new THREE.Group();
   offsetRoot.name = 'PhoenixOffsetRoot';
-
   const scaleRoot = new THREE.Group();
   scaleRoot.name = 'PhoenixScaleRoot';
 
@@ -107,11 +31,11 @@ function normalizeModel(group, sourceScene, targetSpan) {
 
   const finalBox = new THREE.Box3().setFromObject(group);
   const finalSize = finalBox.getSize(new THREE.Vector3());
-
   return {
     originalSize: size,
     normalizedSize: finalSize,
-    scale: targetSpan / maxDimension
+    scale: targetSpan / maxDimension,
+    center: new THREE.Vector3()
   };
 }
 
@@ -176,15 +100,17 @@ export async function loadPhoenixGLB(
 
   sourceScene.traverse((node) => {
     if (!node.isMesh) return;
-
     node.castShadow = true;
     node.receiveShadow = true;
 
-    if (royalize) applyRoyalMaterial(node);
-
+    if (royalize) {
+      const material = applyRoyalMaterial(node);
+      if (material) materials.add(material);
+    } else {
+      const list = Array.isArray(node.material) ? node.material : [node.material];
+      list.filter(Boolean).forEach((material) => materials.add(material));
+    }
     meshes.push(node);
-    const list = Array.isArray(node.material) ? node.material : [node.material];
-    list.filter(Boolean).forEach((material) => materials.add(material));
   });
 
   if (!meshes.length) throw new Error('The supplied GLB contains no mesh geometry.');
@@ -192,6 +118,20 @@ export async function loadPhoenixGLB(
   const normalization = normalizeModel(group, sourceScene, targetSpan);
   group.updateMatrixWorld(true);
   const anchors = makeAnchors(meshes, sampleCount);
+
+  let mixer = null;
+  let activeAnimationCount = 0;
+  if (gltf.animations?.length) {
+    mixer = new THREE.AnimationMixer(sourceScene);
+    for (const clip of gltf.animations) {
+      const action = mixer.clipAction(clip);
+      action.reset().fadeIn(0.28).play();
+      activeAnimationCount++;
+    }
+  }
+
+  const pointer = new THREE.Vector2();
+  let pulse = 0;
 
   function setOpacity(opacity) {
     materials.forEach((material) => {
@@ -202,10 +142,25 @@ export async function loadPhoenixGLB(
     });
   }
 
-  function update(time, motion = 1) {
-    if (!motion) return;
-    group.rotation.y = Math.sin(time * 0.24) * 0.022;
-    group.rotation.z = Math.sin(time * 0.17) * 0.004;
+  function setPointer(x, y) {
+    pointer.set(x, y);
+  }
+
+  function triggerPulse(amount = 1) {
+    pulse = Math.max(pulse, THREE.MathUtils.clamp(amount, 0, 1.5));
+  }
+
+  function update(time, motion = 1, dt = 0) {
+    if (mixer && dt > 0) mixer.update(dt * Math.max(0.05, motion));
+
+    if (motion) {
+      group.rotation.y = Math.sin(time * 0.24) * 0.022 + pointer.x * 0.012;
+      group.rotation.z = Math.sin(time * 0.17) * 0.004 - pointer.x * 0.004;
+      group.rotation.x = pointer.y * 0.004;
+    }
+
+    pulse = Math.max(0, pulse - dt * 1.9);
+    updateRoyalMaterials(materials, { time, motion, pulse, pointer });
   }
 
   return {
@@ -213,6 +168,8 @@ export async function loadPhoenixGLB(
     anchors,
     update,
     setOpacity,
+    setPointer,
+    triggerPulse,
     palette: ROYAL,
     adapterContract: {
       type: 'glb',
@@ -220,6 +177,7 @@ export async function loadPhoenixGLB(
       sampledMeshes: meshes.length,
       normalization,
       royalized: royalize,
+      animations: activeAnimationCount,
       targetContract: '{ positions: Float32Array, colors: Float32Array }'
     }
   };
