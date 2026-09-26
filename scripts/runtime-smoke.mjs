@@ -35,7 +35,14 @@ try {
   if (state.quality !== 'ultra') throw new Error('Expected ultra quality, got ' + state.quality);
   if (state.menu !== false || ui.menus !== 0) throw new Error('Public UI is not menu-free');
   if (state.captureMode !== true) throw new Error('Capture verification mode did not activate');
-  if (state.particles < 20000) throw new Error('Particle count unexpectedly low: ' + state.particles);
+  if (state.particles < 18000) throw new Error('Desktop particle count unexpectedly low: ' + state.particles);
+  if (state.realtimeShadows !== false) throw new Error('Realtime shadows should be disabled in the optimized runtime');
+  if (!(state.firstPaintMs > 0 && state.startupMs > state.firstPaintMs)) {
+    throw new Error('Expected first Phoenix paint before full FX startup: ' + JSON.stringify({
+      firstPaintMs: state.firstPaintMs,
+      startupMs: state.startupMs
+    }));
+  }
   if (!adapter || adapter.type !== 'glb' || !String(adapter.source).includes('royal-phoenix-external-v1.glb')) {
     throw new Error('External GLB adapter is not active');
   }
@@ -83,6 +90,50 @@ try {
   const visualSummary = { ...visual };
   delete visualSummary.dataUrl;
 
+  const mobileContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+    isMobile: true,
+    hasTouch: true,
+    userAgent: 'Mozilla/5.0 (Linux; Android 15; Mobile) AppleWebKit/537.36 Chrome/140 Safari/537.36'
+  });
+  const mobilePage = await mobileContext.newPage();
+  const mobileErrors = [];
+  mobilePage.on('pageerror', (error) => mobileErrors.push('pageerror: ' + error.message));
+  mobilePage.on('console', (message) => {
+    if (message.type() === 'error') mobileErrors.push('console: ' + message.text());
+  });
+
+  const mobileUrl = new URL(baseUrl);
+  mobileUrl.searchParams.set('smokeMobile', String(Date.now()));
+  await mobilePage.goto(mobileUrl.toString(), { waitUntil: 'networkidle', timeout: 120000 });
+  await mobilePage.waitForFunction(() => Boolean(window.__PHOENIX_LAB__), null, { timeout: 60000 });
+  await mobilePage.waitForTimeout(1200);
+
+  const mobileState = await mobilePage.evaluate(() => window.__PHOENIX_LAB__.getState());
+  if (!String(mobileState.performanceProfile).startsWith('mobile-')) {
+    throw new Error('Mobile optimization profile did not activate: ' + JSON.stringify(mobileState));
+  }
+  if (mobileState.particles > 14000) {
+    throw new Error('Mobile particle budget is too high: ' + mobileState.particles);
+  }
+  if (mobileState.renderPixelRatio > 1.81) {
+    throw new Error('Mobile pixel ratio budget is too high: ' + mobileState.renderPixelRatio);
+  }
+  if (mobileState.realtimeShadows !== false) {
+    throw new Error('Realtime shadows unexpectedly enabled on mobile');
+  }
+  if (!(mobileState.firstPaintMs > 0 && mobileState.startupMs > mobileState.firstPaintMs)) {
+    throw new Error('Mobile first paint did not precede full FX startup: ' + JSON.stringify({
+      firstPaintMs: mobileState.firstPaintMs,
+      startupMs: mobileState.startupMs
+    }));
+  }
+  if (mobileErrors.length) {
+    throw new Error('Mobile runtime errors detected:\n' + mobileErrors.join('\n'));
+  }
+  await mobileContext.close();
+
   if (errors.length) {
     throw new Error('Runtime errors detected:\n' + errors.join('\n'));
   }
@@ -93,7 +144,8 @@ try {
     adapter,
     ui,
     after,
-    visual: visualSummary
+    visual: visualSummary,
+    mobileState
   }, null, 2));
 } finally {
   await browser.close();
