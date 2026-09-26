@@ -28,7 +28,7 @@ jobs:
         run: python scripts/build_phoenix_glb.py
       - name: Commit generated model
         run: |
-          if git diff --quiet -- models/royal-phoenix-v1.glb; then
+          if [ -z "$(git status --porcelain -- models/royal-phoenix-v1.glb)" ]; then
             echo "GLB is already up to date."
             exit 0
           fi
