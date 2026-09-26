@@ -7,12 +7,12 @@ function seeded(index) {
 
 function makeFeatherGeometry() {
   const positions = new Float32Array([
-     0.00, 0.00, 0,
-    -0.34, 0.30, 0,
-    -0.16, 0.78, 0,
-     0.00, 1.00, 0,
-     0.16, 0.78, 0,
-     0.34, 0.30, 0
+     0.00, 0.00,  0.000,
+    -0.22, 0.28, -0.018,
+    -0.10, 0.73,  0.026,
+     0.00, 1.00,  0.060,
+     0.10, 0.73,  0.026,
+     0.22, 0.28, -0.018
   ]);
   const indices = [
     0, 1, 2,
@@ -49,18 +49,18 @@ export function createFeatherAccents(anchors, { count = 110 } = {}) {
   const material = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
     vertexColors: true,
-    metalness: 0.38,
-    roughness: 0.32,
-    clearcoat: 0.22,
-    clearcoatRoughness: 0.3,
-    emissive: 0x160105,
-    emissiveIntensity: 0.16,
+    metalness: 0.18,
+    roughness: 0.46,
+    clearcoat: 0.10,
+    clearcoatRoughness: 0.42,
+    emissive: 0x0d0104,
+    emissiveIntensity: 0.055,
     transparent: true,
-    opacity: 0.91,
+    opacity: 0.78,
     depthWrite: false,
     side: THREE.DoubleSide
   });
-  material.envMapIntensity = 1.28;
+  material.envMapIntensity = 0.82;
 
   const mesh = new THREE.InstancedMesh(geometry, material, count);
   mesh.name = 'RoyalFeatherAccents';
@@ -105,11 +105,11 @@ export function createFeatherAccents(anchors, { count = 110 } = {}) {
     rollQ.setFromAxisAngle(outward, (seed - 0.5) * 0.75);
     q.multiply(rollQ);
 
-    const length = span * (0.055 + seed * 0.055 + (ny < 0.26 ? 0.035 : 0));
-    const width = length * (0.23 + tip * 0.10);
-    scale.set(width, length, width);
+    const length = span * (0.040 + seed * 0.038 + (ny < 0.24 ? 0.020 : 0));
+    const width = length * (0.12 + tip * 0.055);
+    scale.set(width, length, width * 0.55);
 
-    const position = p.clone().addScaledVector(outward, span * 0.0105);
+    const position = p.clone().addScaledVector(outward, span * 0.0065);
     base.push({
       position,
       quaternion: q.clone(),
@@ -118,10 +118,10 @@ export function createFeatherAccents(anchors, { count = 110 } = {}) {
       seed
     });
 
-    if (ny > 0.89 && i % 3 === 0) color.set(0xd8b15c);
-    else if (edge > 0.91 && i % 5 === 0) color.set(0xb98239);
-    else if (i % 7 === 0) color.set(0x231015);
-    else color.set(i % 2 ? 0xa20d2d : 0x65091d);
+    if (ny > 0.94 && i % 11 === 0) color.set(0x9a6c33);
+    else if (edge > 0.96 && i % 17 === 0) color.set(0x76502a);
+    else if (i % 5 === 0) color.set(0x13070a);
+    else color.set(i % 2 ? 0x5a071b : 0x33040f);
 
     mesh.setColorAt(i, color);
     matrix.compose(position, q, scale);
@@ -138,11 +138,11 @@ export function createFeatherAccents(anchors, { count = 110 } = {}) {
   function update(time, motion = 1, pulse = 0) {
     for (let i = 0; i < count; i++) {
       const feather = base[i];
-      const flutter = Math.sin(time * (1.0 + feather.seed * 0.8) + feather.seed * 12.0)
-        * (0.014 + feather.seed * 0.018) * motion;
+      const flutter = Math.sin(time * (0.88 + feather.seed * 0.62) + feather.seed * 12.0)
+        * (0.008 + feather.seed * 0.010) * motion;
       flutterQ.setFromAxisAngle(feather.outward, flutter);
       workQ.copy(feather.quaternion).multiply(flutterQ);
-      const k = 1 + pulse * (0.015 + feather.seed * 0.018);
+      const k = 1 + pulse * (0.009 + feather.seed * 0.010);
       pulseScale.copy(feather.scale).multiplyScalar(k);
       matrix.compose(feather.position, workQ, pulseScale);
       mesh.setMatrixAt(i, matrix);
