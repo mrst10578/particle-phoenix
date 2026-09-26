@@ -1,0 +1,38 @@
+name: Import External Phoenix Asset
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/import-external-phoenix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download optimized CC-BY Phoenix from Dropbox staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p models
+          curl -L --fail --silent --show-error 'https://uc368cf4cfc85e624d6a8b56246f.dl.dropboxusercontent.com/cd/0/get/DI1xYGF8F0bO5DnDuIkbJUEWbrHGl7kPd0LkNmOpM3HUyXsXGIv5Pk3fS-sAcE-1OrgyhXIQsuiEJy06Y9WaLeEcCDJfa73DLybH-fQg08g53Q-a2OMmqI3wbzYwz-Yoz7LOBwUqGZJdq1yzZLYm5knZPEuJ88wMaVVoFHDAlJ64lQ/file?c_luid=e2a8d15f' \
+            -o models/royal-phoenix-external-v1.glb
+          test "$(stat -c%s models/royal-phoenix-external-v1.glb)" -eq 5228212
+          echo "701191ed14be5c006a0479db49f9eaded0141f96ef9da644cb58fcf67f9d1e25  models/royal-phoenix-external-v1.glb" | sha256sum -c -
+
+      - name: Commit external Phoenix asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add models/royal-phoenix-external-v1.glb
+          git commit -m "assets: add external Royal Phoenix model"
+          git push origin HEAD:main
