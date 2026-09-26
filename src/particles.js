@@ -76,7 +76,8 @@ export function createPhoenixParticles({ phoenixTargets, count = 9000 }) {
   let duration = 1.35;
   let targetName = 'phoenix';
   let density = 0.72;
-  geometry.setDrawRange(0, Math.floor(count * density));
+  let visibleCount = Math.floor(count * density);
+  geometry.setDrawRange(0, visibleCount);
 
   function setTarget(name, { immediate = false, seconds = 1.35 } = {}) {
     const next = targets[name];
@@ -100,7 +101,7 @@ export function createPhoenixParticles({ phoenixTargets, count = 9000 }) {
     if (progress < 1) progress = Math.min(1, progress + dt / duration);
     const eased = easeInOutCubic(progress);
     const driftScale = targetName === 'scatter' ? 0.055 : 0.018;
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < visibleCount; i++) {
       const k = i * 3;
       const drift = Math.sin(time * 1.3 + seeds[i]) * driftScale * motion;
       current[k] = THREE.MathUtils.lerp(from[k], to[k], eased) + drift;
@@ -117,8 +118,28 @@ export function createPhoenixParticles({ phoenixTargets, count = 9000 }) {
   }
 
   function setDensity(value) {
+    const previousVisibleCount = visibleCount;
     density = THREE.MathUtils.clamp(value, 0.25, 1);
-    geometry.setDrawRange(0, Math.floor(count * density));
+    visibleCount = Math.floor(count * density);
+
+    // Newly revealed particles enter at the active target instead of exposing
+    // stale positions that were intentionally skipped while hidden.
+    if (visibleCount > previousVisibleCount) {
+      const target = targets[targetName];
+      for (let i = previousVisibleCount; i < visibleCount; i++) {
+        const k = i * 3;
+        current[k] = target.positions[k];
+        current[k + 1] = target.positions[k + 1];
+        current[k + 2] = target.positions[k + 2];
+        currentColors[k] = target.colors[k];
+        currentColors[k + 1] = target.colors[k + 1];
+        currentColors[k + 2] = target.colors[k + 2];
+      }
+      geometry.attributes.position.needsUpdate = true;
+      geometry.attributes.color.needsUpdate = true;
+    }
+
+    geometry.setDrawRange(0, visibleCount);
   }
 
   function setPointSize(value) {
@@ -139,7 +160,7 @@ export function createPhoenixParticles({ phoenixTargets, count = 9000 }) {
     setPointSize,
     dispose,
     get targetName() { return targetName; },
-    get activeCount() { return Math.floor(count * density); },
+    get activeCount() { return visibleCount; },
     maxCount: count
   };
 }
