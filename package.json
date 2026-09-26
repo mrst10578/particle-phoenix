@@ -1,9 +1,9 @@
 {
   "name": "loprax-particle-phoenix-lab",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "check": "node --check src/phoenix.js && node --check src/shapes.js && node --check src/particles.js && node --check src/glb-adapter.js && node --check src/app.js && node scripts/validate.mjs"
+    "check": "node --check src/phoenix.js && node --check src/shapes.js && node --check src/particles.js && node --check src/royal-material.js && node --check src/glb-adapter.js && node --check src/cinematic-effects.js && node --check src/postfx.js && node --check src/royal-audio.js && node --check src/app.js && node scripts/validate.mjs"
   }
 }
