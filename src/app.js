@@ -436,7 +436,7 @@ setDisplay('hybrid');
 phoenix.setOpacity?.(1);
 particleSystem.setTarget('phoenix', { seconds: reducedMotion ? 0.2 : 2.15 });
 particleSystem.setDensity(1);
-particleSystem.setPixelRatio(maxPixelRatio);
+particleSystem.setPixelRatio(renderPixelRatio);
 heroFx.setIntro(intro);
 markBoot('initial-state-ready');
 
