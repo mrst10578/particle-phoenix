@@ -184,7 +184,7 @@ phoenix.setOpacity?.(1);
 renderer.render(scene, camera);
 firstPaintMs = performance.now() - bootStartedAt;
 loading?.classList.add('is-hidden');
-await new Promise((resolve) => requestAnimationFrame(resolve));
+await new Promise((resolve) => window.setTimeout(resolve, 0));
 
 const scheduleIdle = window.requestIdleCallback
   ? (callback) => window.requestIdleCallback(callback, { timeout: 900 })
