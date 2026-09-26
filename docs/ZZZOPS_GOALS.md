@@ -1,24 +1,28 @@
 # ZzzOps Goal Ledger
 
-GitHub Issues are disabled in this fork, so this repository-local ledger is the durable fallback queue for this execution.
+GitHub Issues are disabled in this fork, so this repository-local ledger is the durable fallback queue.
 
-## Root outcome
-**G0 — Royal Phoenix 3D Lab**  
-Deliver the complete ten-phase product outcome defined in `docs/PRODUCT_SPEC.md`.
+## Completed V1 root
+**G0 — Royal Phoenix 3D Lab** — phases 1–10 implemented and previously deployed.
 
-## Goal DAG
-- G1 — Repository/asset structure → G0 — implemented / verified
-- G2 — Procedural volumetric phoenix → G1 — implemented / verified
-- G3 — Web optimization + future GLB contract → G2 — implemented / verified
-- G4 — Browser 3D scene → G2 — implemented / host runtime not verified
-- G5 — Royal cinematic visual system → G4 — implemented / host visual not verified
-- G6 — Surface-derived particle phoenix → G2, G4 — implemented / verified
-- G7 — Motion and interaction → G5, G6 — implemented / host interaction not verified
-- G8 — Mobile performance tiers → G7 — implemented / verified
-- G9 — Lab control surface → G7, G8 — implemented / host interaction not verified
-- G10 — Phoenix/Rose/Crown morph system → G6, G9 — implemented / verified
+## Active V2 root
+**G20 — Royal Phoenix V2 Cinematic Hero**  
+Deliver the complete accepted outcome in `docs/PRODUCT_SPEC_V2.md`.
 
-## Execution state
-The active implementation branch is `feat/royal-phoenix-3d-lab`.
+## V2 goal DAG
+- G21 — GLB/fallback/animation-ready adapter → G20 — in-progress
+- G22 — Royal physical shader + organic deformation → G21 — planned
+- G23 — GPU particle engine → G21 — planned
+- G24 — Halo/floor/ember/ash/petal environment → G22,G23 — planned
+- G25 — Cinematic post-FX → G22 — planned
+- G26 — Royal Pulse + pointer/touch choreography + intro → G22,G23,G24,G25 — planned
+- G27 — Menu-free/reduced-motion/static-host contract → G26 — planned
+- G28 — CI/deploy/final verification → G27 — planned
 
-The implementation queue is exhausted for the authorized phase 1–10 scope. Static CI is the canonical available verification. The remaining acceptance boundary is a hosted visual/interaction smoke test after an authorized preview or deployment.
+## Current execution
+Execution is authorized through the full G20 scope by the user's explicit instruction to complete all proposed improvements using ZzzOps and Servotab.
+
+## Verification policy
+- Static/source claims: `npm run check`.
+- Deployment claim: GitHub Pages workflow and staged artifact.
+- Visual/interaction claim: exact hosted page when an executable browser surface is available.
