@@ -49,7 +49,7 @@ export const CinematicShader = {
       float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
       vec3 warmShadow = vec3(0.055, 0.010, 0.017);
       vec3 goldHighlight = vec3(1.06, 0.83, 0.52);
-      color = mix(color, color + warmShadow, smoothstep(0.35, 0.0, luma) * 0.26);
+      color = mix(color, color + warmShadow, (1.0 - smoothstep(0.0, 0.35, luma)) * 0.26);
       color *= mix(vec3(1.0), goldHighlight, smoothstep(0.72, 1.35, luma) * 0.08);
       color.r *= 1.025;
       color.b *= 0.965;
@@ -57,7 +57,7 @@ export const CinematicShader = {
       float grain = hash21(gl_FragCoord.xy + uTime * 61.7) - 0.5;
       color += grain * 0.0105;
 
-      float vignette = smoothstep(0.88, 0.24, length(centered * vec2(0.92, 1.08)));
+      float vignette = 1.0 - smoothstep(0.24, 0.88, length(centered * vec2(0.92, 1.08)));
       color *= mix(0.64, 1.02, vignette);
 
       float pulseHalo = exp(-abs(length(centered) - (0.12 + uPulse * 0.35)) * 35.0) * uPulse;
