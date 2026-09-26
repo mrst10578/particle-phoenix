@@ -39,7 +39,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(maxPixelRatio);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 viewport.appendChild(renderer.domElement);
@@ -71,9 +71,9 @@ composer.addPass(new RenderPass(scene, camera));
 
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  1.14,
-  0.86,
-  0.20
+  0.92,
+  0.78,
+  0.24
 );
 composer.addPass(bloomPass);
 
@@ -86,10 +86,10 @@ cinematicPass.uniforms.uMotion.value = reducedMotion ? 0 : 1;
 composer.addPass(cinematicPass);
 composer.addPass(new OutputPass());
 
-const hemi = new THREE.HemisphereLight(0x671329, 0x020102, 0.46);
+const hemi = new THREE.HemisphereLight(0x4b1020, 0x020102, 0.34);
 scene.add(hemi);
 
-const key = new THREE.SpotLight(0xffc878, 152, 30, Math.PI * 0.215, 0.80, 1.12);
+const key = new THREE.SpotLight(0xffc77a, 122, 30, Math.PI * 0.205, 0.82, 1.12);
 key.position.set(4.7, 8.0, 6.7);
 key.target.position.set(0, 0.18, 0);
 key.castShadow = true;
@@ -98,19 +98,19 @@ key.shadow.bias = -0.00012;
 key.shadow.normalBias = 0.018;
 scene.add(key, key.target);
 
-const crimsonRim = new THREE.PointLight(0xff123a, 124, 20, 1.72);
+const crimsonRim = new THREE.PointLight(0xc90f32, 88, 20, 1.72);
 crimsonRim.position.set(-5.9, 2.1, -3.9);
 scene.add(crimsonRim);
 
-const goldRim = new THREE.PointLight(0xffd78c, 96, 18, 1.62);
+const goldRim = new THREE.PointLight(0xe0b76f, 72, 18, 1.62);
 goldRim.position.set(5.5, -0.25, -2.9);
 scene.add(goldRim);
 
-const royalFill = new THREE.PointLight(0x8d1733, 36, 14, 1.95);
+const royalFill = new THREE.PointLight(0x661126, 24, 14, 1.95);
 royalFill.position.set(0, -4.0, 4.7);
 scene.add(royalFill);
 
-const chestLight = new THREE.PointLight(0xff5d34, 18, 8, 2.0);
+const chestLight = new THREE.PointLight(0xd54129, 12, 8, 2.0);
 chestLight.position.set(0, 0.1, 2.2);
 scene.add(chestLight);
 
@@ -410,11 +410,12 @@ function animate() {
   stars.rotation.x = Math.sin(time * 0.08) * 0.008 * motion;
 
   const pulse = heroFx.pulse;
-  key.intensity = baseLight.key * (1 + pulse * 0.28);
-  crimsonRim.intensity = baseLight.crimson * (1 + pulse * 0.72);
-  goldRim.intensity = baseLight.gold * (1 + pulse * 0.62);
-  royalFill.intensity = baseLight.fill * (1 + pulse * 0.36);
-  chestLight.intensity = baseLight.chest * (1 + pulse * 2.2);
+  const breatheLight = 1 + Math.sin(time * 1.08) * 0.025 * motion;
+  key.intensity = baseLight.key * breatheLight * (1 + pulse * 0.18);
+  crimsonRim.intensity = baseLight.crimson * (1 + pulse * 0.42);
+  goldRim.intensity = baseLight.gold * (1 + pulse * 0.34);
+  royalFill.intensity = baseLight.fill * (1 + pulse * 0.22);
+  chestLight.intensity = baseLight.chest * (1 + pulse * 1.25);
 
   cinematicPass.uniforms.uTime.value = time;
   cinematicPass.uniforms.uPulse.value = pulse;
