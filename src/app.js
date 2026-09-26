@@ -4,7 +4,8 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { createRoyalPhoenix } from './phoenix.js';\nimport { loadPhoenixGLB } from './glb-adapter.js';
+import { createRoyalPhoenix } from './phoenix.js';
+import { loadPhoenixGLB } from './glb-adapter.js';
 import { createPhoenixParticles } from './particles.js';
 import { createLabUI } from './ui.js';
 
