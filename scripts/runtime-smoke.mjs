@@ -53,7 +53,20 @@ if (after.shapeMode !== 'phoenix') throw new Error('Phoenix target restore faile
 if (!(after.pulse > 0)) throw new Error('Royal Pulse did not activate');
 
 await mkdir('artifacts', { recursive: true });
-await page.screenshot({ path: 'artifacts/phoenix-v2.png', fullPage: true });
+try {
+  await page.evaluate(() => window.__PHOENIX_LAB__.setDisplay('solid'));
+  await page.waitForTimeout(120);
+  const cdp = await page.context().newCDPSession(page);
+  const shot = await cdp.send('Page.captureScreenshot', {
+    format: 'png',
+    fromSurface: true,
+    captureBeyondViewport: false
+  });
+  const { writeFile } = await import('node:fs/promises');
+  await writeFile('artifacts/phoenix-v2.png', Buffer.from(shot.data, 'base64'));
+} catch (error) {
+  console.warn('Visual evidence capture skipped:', error.message);
+}
 
 if (errors.length) {
   throw new Error('Runtime errors detected:\n' + errors.join('\n'));
