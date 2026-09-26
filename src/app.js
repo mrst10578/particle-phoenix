@@ -64,6 +64,10 @@ scene.add(hemi);
 const key = new THREE.SpotLight(0xffc878, 145, 28, Math.PI * 0.22, 0.82, 1.15);
 key.position.set(4.6, 7.8, 6.5);
 key.target.position.set(0, 0.15, 0);
+key.castShadow = true;
+key.shadow.mapSize.set(4096, 4096);
+key.shadow.bias = -0.00012;
+key.shadow.normalBias = 0.018;
 scene.add(key, key.target);
 
 const crimsonRim = new THREE.PointLight(0xff153d, 120, 19, 1.75);
