@@ -4,7 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { createRoyalPhoenix } from './phoenix.js';
+import { createRoyalPhoenix } from './phoenix.js';\nimport { loadPhoenixGLB } from './glb-adapter.js';
 import { createPhoenixParticles } from './particles.js';
 import { createLabUI } from './ui.js';
 
@@ -72,7 +72,15 @@ const goldRim = new THREE.PointLight(0xffcf77, 70, 16, 1.7);
 goldRim.position.set(5.2, -1.2, -2.5);
 scene.add(goldRim);
 
-const phoenix = createRoyalPhoenix();
+let phoenix = createRoyalPhoenix();
+const externalModelUrl = new URLSearchParams(window.location.search).get('model');
+if (externalModelUrl) {
+  try {
+    phoenix = await loadPhoenixGLB(externalModelUrl, { sampleCount: isMobile ? 8500 : 14000 });
+  } catch (error) {
+    console.warn('External GLB failed; using procedural phoenix instead.', error);
+  }
+}
 phoenix.group.scale.setScalar(isMobile ? 0.91 : 1);
 phoenix.group.position.y = 0.25;
 scene.add(phoenix.group);
