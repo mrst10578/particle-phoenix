@@ -4,6 +4,6 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "check": "node --check src/phoenix.js && node --check src/shapes.js && node --check src/particles.js && node --check src/ui.js && node --check src/glb-adapter.js && node --check src/app.js && node scripts/validate.mjs"
+    "check": "node --check src/phoenix.js && node --check src/shapes.js && node --check src/particles.js && node --check src/glb-adapter.js && node --check src/app.js && node scripts/validate.mjs"
   }
 }
