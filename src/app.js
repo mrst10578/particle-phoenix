@@ -16,6 +16,19 @@ import { createRoyalAudioCue } from './royal-audio.js?v=2.1.1';
 
 const bootStartedAt = performance.now();
 let firstRenderMs = null;
+const bootState = { stage: 'module-start', marks: [], error: null };
+window.__PHOENIX_BOOT__ = bootState;
+function markBoot(stage) {
+  bootState.stage = stage;
+  bootState.marks.push({ stage, ms: Math.round((performance.now() - bootStartedAt) * 10) / 10 });
+}
+window.addEventListener('error', (event) => {
+  bootState.error = event.error?.stack || event.message || String(event.error || 'window-error');
+});
+window.addEventListener('unhandledrejection', (event) => {
+  bootState.error = event.reason?.stack || String(event.reason || 'unhandled-rejection');
+});
+markBoot('module-start');
 
 const viewport = document.querySelector('[data-viewport]');
 const loading = document.querySelector('[data-loading]');
@@ -171,6 +184,8 @@ for (const candidate of modelCandidates) {
   }
 }
 
+markBoot('model-ready');
+
 phoenix.group.scale.setScalar(isMobile ? 0.95 : 1);
 phoenix.group.position.y = 0.05;
 
@@ -183,12 +198,14 @@ scene.add(motionRoot);
 phoenix.setOpacity?.(1);
 renderer.render(scene, camera);
 firstRenderMs = performance.now() - bootStartedAt;
+markBoot('first-render');
 loading?.classList.add('is-hidden');
 const scheduleIdle = window.requestIdleCallback
   ? (callback) => window.requestIdleCallback(callback, { timeout: 900 })
   : (callback) => window.setTimeout(callback, 220);
 scheduleIdle(initializeEnvironmentLighting);
 
+markBoot('particles-start');
 const particleSystem = createPhoenixParticles({
   phoenixTargets: phoenix.anchors,
   count: particleBudget,
@@ -198,14 +215,18 @@ particleSystem.points.position.copy(phoenix.group.position);
 particleSystem.points.scale.copy(phoenix.group.scale);
 particleSystem.setPointSize(isMobile ? 0.11 : 0.10);
 motionRoot.add(particleSystem.points);
+markBoot('particles-ready');
 
+markBoot('feathers-start');
 const featherAccents = createFeatherAccents(phoenix.anchors, {
   count: featherBudget
 });
 featherAccents.mesh.position.copy(phoenix.group.position);
 featherAccents.mesh.scale.copy(phoenix.group.scale);
 motionRoot.add(featherAccents.mesh);
+markBoot('feathers-ready');
 
+markBoot('environment-start');
 const heroFx = createCinematicEnvironment({
   scene,
   anchors: phoenix.anchors,
@@ -214,7 +235,10 @@ const heroFx = createCinematicEnvironment({
   pixelRatio: renderPixelRatio
 });
 
+markBoot('environment-ready');
+
 const audioCue = createRoyalAudioCue({ enabled: true });
+markBoot('audio-ready');
 
 function makeStars() {
   const count = isMobile ? (lowPowerMobile ? 420 : 620) : 1150;
@@ -252,7 +276,9 @@ function makeStars() {
   return points;
 }
 
+markBoot('stars-start');
 const stars = makeStars();
+markBoot('stars-ready');
 
 const quality = 'ultra';
 let displayMode = 'hybrid';
@@ -405,12 +431,14 @@ function awakenSequence() {
   }, reducedMotion ? 40 : 620);
 }
 
+markBoot('initial-state-start');
 setDisplay('hybrid');
 phoenix.setOpacity?.(1);
 particleSystem.setTarget('phoenix', { seconds: reducedMotion ? 0.2 : 2.15 });
 particleSystem.setDensity(1);
 particleSystem.setPixelRatio(maxPixelRatio);
 heroFx.setIntro(intro);
+markBoot('initial-state-ready');
 
 const clock = new THREE.Clock();
 
@@ -513,6 +541,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 const startupMs = performance.now() - bootStartedAt;
+markBoot('api-start');
 
 window.__PHOENIX_LAB__ = {
   version: '2.1.0',
@@ -542,5 +571,6 @@ window.__PHOENIX_LAB__ = {
     startupMs
   })
 };
+markBoot('ready');
 
 animate();
