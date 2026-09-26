@@ -8,6 +8,8 @@ const required = [
   'src/particles.js',
   'src/shapes.js',
   'src/ui.js',
+  'src/glb-adapter.js',
+  'models/README.md',
   'docs/PRODUCT_SPEC.md',
   'docs/IMPLEMENTATION_PLAN.md',
   'references/phoenix/LoPRax_Phoenix_3D_Reference_Pack.zip'
@@ -28,7 +30,7 @@ for (const token of ['./src/styles.css', './src/app.js', 'type="importmap"']) {
 }
 
 const app = readFileSync('src/app.js', 'utf8');
-for (const token of ['createRoyalPhoenix', 'createPhoenixParticles', 'createLabUI']) {
+for (const token of ['createRoyalPhoenix', 'loadPhoenixGLB', 'createPhoenixParticles', 'createLabUI']) {
   if (!app.includes(token)) {
     console.error('app.js is missing integration token:', token);
     process.exit(1);
