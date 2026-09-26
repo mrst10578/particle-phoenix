@@ -20,7 +20,28 @@ const params = new URLSearchParams(window.location.search);
 const captureMode = params.get('capture') === '1';
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 820;
-const maxPixelRatio = Math.min(window.devicePixelRatio, 3);
+const hardwareCores = navigator.hardwareConcurrency || (isMobile ? 4 : 8);
+const deviceMemory = navigator.deviceMemory || (isMobile ? 4 : 8);
+const lowPowerMobile = isMobile && (hardwareCores <= 4 || deviceMemory <= 4);
+
+function computeRenderPixelRatio() {
+  const cssPixels = Math.max(1, window.innerWidth * window.innerHeight);
+  const pixelBudget = isMobile ? 1_450_000 : 3_600_000;
+  const budgetRatio = Math.sqrt(pixelBudget / cssPixels);
+  const hardCap = isMobile ? 1.8 : 2.0;
+  return Math.max(1, Math.min(window.devicePixelRatio || 1, hardCap, budgetRatio));
+}
+
+let renderPixelRatio = computeRenderPixelRatio();
+const performanceProfile = isMobile
+  ? (lowPowerMobile ? 'mobile-lean' : 'mobile-balanced')
+  : 'desktop-balanced';
+const particleBudget = isMobile
+  ? (lowPowerMobile ? 10000 : 14000)
+  : 22000;
+const featherBudget = isMobile
+  ? (lowPowerMobile ? 40 : 54)
+  : 92;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x020102);
@@ -30,29 +51,31 @@ const camera = new THREE.PerspectiveCamera(37, window.innerWidth / window.innerH
 camera.position.set(0, 0.18, isMobile ? 13.15 : 11.75);
 
 const renderer = new THREE.WebGLRenderer({
-  antialias: true,
+  antialias: false,
   alpha: false,
   powerPreference: 'high-performance',
   preserveDrawingBuffer: captureMode
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(maxPixelRatio);
+renderer.setPixelRatio(renderPixelRatio);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = false;
 viewport.appendChild(renderer.domElement);
 
-const pmrem = new THREE.PMREMGenerator(renderer);
-const roomEnvironment = new RoomEnvironment();
-scene.environment = pmrem.fromScene(roomEnvironment, 0.035).texture;
-roomEnvironment.traverse((node) => {
-  node.geometry?.dispose?.();
-  if (Array.isArray(node.material)) node.material.forEach((material) => material?.dispose?.());
-  else node.material?.dispose?.();
-});
-pmrem.dispose();
+function initializeEnvironmentLighting() {
+  if (scene.environment) return;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const roomEnvironment = new RoomEnvironment();
+  scene.environment = pmrem.fromScene(roomEnvironment, 0.035).texture;
+  roomEnvironment.traverse((node) => {
+    node.geometry?.dispose?.();
+    if (Array.isArray(node.material)) node.material.forEach((material) => material?.dispose?.());
+    else node.material?.dispose?.();
+  });
+  pmrem.dispose();
+}
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -79,8 +102,8 @@ composer.addPass(bloomPass);
 
 const cinematicPass = new ShaderPass(CinematicShader);
 cinematicPass.uniforms.uResolution.value = new THREE.Vector2(
-  window.innerWidth * maxPixelRatio,
-  window.innerHeight * maxPixelRatio
+  window.innerWidth * renderPixelRatio,
+  window.innerHeight * renderPixelRatio
 );
 cinematicPass.uniforms.uMotion.value = reducedMotion ? 0 : 1;
 composer.addPass(cinematicPass);
@@ -92,10 +115,7 @@ scene.add(hemi);
 const key = new THREE.SpotLight(0xffc77a, 122, 30, Math.PI * 0.205, 0.82, 1.12);
 key.position.set(4.7, 8.0, 6.7);
 key.target.position.set(0, 0.18, 0);
-key.castShadow = true;
-key.shadow.mapSize.set(4096, 4096);
-key.shadow.bias = -0.00012;
-key.shadow.normalBias = 0.018;
+key.castShadow = false;
 scene.add(key, key.target);
 
 const crimsonRim = new THREE.PointLight(0xc90f32, 88, 20, 1.72);
@@ -136,7 +156,7 @@ const modelCandidates = proceduralOnly ? [] : [
 for (const candidate of modelCandidates) {
   try {
     phoenix = await loadPhoenixGLB(candidate.url, {
-      sampleCount: isMobile ? 26000 : 36000,
+      sampleCount: particleBudget,
       targetSpan: isMobile ? 7.7 : 8.35,
       royalize: true
     });
@@ -155,17 +175,28 @@ motionRoot.name = 'RoyalPhoenixMotionRoot';
 motionRoot.add(phoenix.group);
 scene.add(motionRoot);
 
+// First paint the actual Phoenix before building the heavier particle/FX layers.
+phoenix.setOpacity?.(1);
+renderer.render(scene, camera);
+loading?.classList.add('is-hidden');
+await new Promise((resolve) => requestAnimationFrame(resolve));
+
+const scheduleIdle = window.requestIdleCallback
+  ? (callback) => window.requestIdleCallback(callback, { timeout: 900 })
+  : (callback) => window.setTimeout(callback, 220);
+scheduleIdle(initializeEnvironmentLighting);
+
 const particleSystem = createPhoenixParticles({
   phoenixTargets: phoenix.anchors,
-  count: isMobile ? 26000 : 36000,
-  pixelRatio: maxPixelRatio
+  count: particleBudget,
+  pixelRatio: renderPixelRatio
 });
 particleSystem.points.position.copy(phoenix.group.position);
 particleSystem.points.scale.copy(phoenix.group.scale);
 motionRoot.add(particleSystem.points);
 
 const featherAccents = createFeatherAccents(phoenix.anchors, {
-  count: isMobile ? 76 : 132
+  count: featherBudget
 });
 featherAccents.mesh.position.copy(phoenix.group.position);
 featherAccents.mesh.scale.copy(phoenix.group.scale);
@@ -176,13 +207,13 @@ const heroFx = createCinematicEnvironment({
   anchors: phoenix.anchors,
   isMobile,
   reducedMotion,
-  pixelRatio: maxPixelRatio
+  pixelRatio: renderPixelRatio
 });
 
 const audioCue = createRoyalAudioCue({ enabled: true });
 
 function makeStars() {
-  const count = isMobile ? 1000 : 1900;
+  const count = isMobile ? (lowPowerMobile ? 420 : 620) : 1150;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const gold = new THREE.Color(0xd8b15c);
@@ -234,13 +265,19 @@ function setDisplay(mode) {
     phoenix.group.visible = true;
     phoenix.setOpacity?.(1);
     particleSystem.points.visible = false;
+    particleSystem.setOpacity?.(0);
+    featherAccents.mesh.visible = true;
   } else if (mode === 'particle') {
     phoenix.group.visible = false;
     particleSystem.points.visible = true;
+    particleSystem.setOpacity?.(1);
+    featherAccents.mesh.visible = false;
   } else {
     phoenix.group.visible = true;
-    phoenix.setOpacity?.(0.78);
+    phoenix.setOpacity?.(1);
     particleSystem.points.visible = true;
+    particleSystem.setOpacity?.(0.52);
+    featherAccents.mesh.visible = true;
   }
 }
 
@@ -365,8 +402,8 @@ function awakenSequence() {
 }
 
 setDisplay('hybrid');
-phoenix.setOpacity?.(reducedMotion ? 0.78 : 0);
-particleSystem.setTarget('phoenix', { seconds: reducedMotion ? 0.2 : 2.45 });
+phoenix.setOpacity?.(1);
+particleSystem.setTarget('phoenix', { seconds: reducedMotion ? 0.2 : 2.15 });
 particleSystem.setDensity(1);
 particleSystem.setPixelRatio(maxPixelRatio);
 heroFx.setIntro(intro);
@@ -386,7 +423,6 @@ function animate() {
   if (!reducedMotion && intro < 1) {
     intro = Math.min(1, intro + dt / 2.45);
     const reveal = 1 - Math.pow(1 - intro, 3);
-    phoenix.setOpacity?.(0.78 * reveal);
     heroFx.setIntro(reveal);
   }
 
@@ -445,16 +481,16 @@ window.addEventListener('pointerdown', (event) => {
 window.addEventListener('dblclick', awakenSequence);
 
 window.addEventListener('resize', () => {
-  const ratio = Math.min(window.devicePixelRatio, 3);
+  renderPixelRatio = computeRenderPixelRatio();
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setPixelRatio(ratio);
+  renderer.setPixelRatio(renderPixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   composer.setSize(window.innerWidth, window.innerHeight);
-  particleSystem.setPixelRatio(ratio);
+  particleSystem.setPixelRatio(renderPixelRatio);
   cinematicPass.uniforms.uResolution.value.set(
-    window.innerWidth * ratio,
-    window.innerHeight * ratio
+    window.innerWidth * renderPixelRatio,
+    window.innerHeight * renderPixelRatio
   );
 });
 
@@ -490,9 +526,12 @@ window.__PHOENIX_LAB__ = {
     intro,
     pulse: heroFx.pulse,
     menu: false,
-    captureMode
+    captureMode,
+    performanceProfile,
+    renderPixelRatio,
+    realtimeShadows: false,
+    particleBudget
   })
 };
 
-window.setTimeout(() => loading?.classList.add('is-hidden'), reducedMotion ? 30 : 360);
 animate();
