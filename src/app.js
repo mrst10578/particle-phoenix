@@ -43,7 +43,11 @@ viewport.appendChild(renderer.domElement);
 const pmrem = new THREE.PMREMGenerator(renderer);
 const roomEnvironment = new RoomEnvironment();
 scene.environment = pmrem.fromScene(roomEnvironment, 0.035).texture;
-roomEnvironment.dispose();
+roomEnvironment.traverse((node) => {
+  node.geometry?.dispose?.();
+  if (Array.isArray(node.material)) node.material.forEach((material) => material?.dispose?.());
+  else node.material?.dispose?.();
+});
 pmrem.dispose();
 
 const controls = new OrbitControls(camera, renderer.domElement);
