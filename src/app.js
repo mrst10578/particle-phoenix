@@ -15,7 +15,7 @@ import { CinematicShader } from './postfx.js';
 import { createRoyalAudioCue } from './royal-audio.js';
 
 const bootStartedAt = performance.now();
-let firstPaintMs = null;
+let firstRenderMs = null;
 
 const viewport = document.querySelector('[data-viewport]');
 const loading = document.querySelector('[data-loading]');
@@ -182,10 +182,8 @@ scene.add(motionRoot);
 // First paint the actual Phoenix before building the heavier particle/FX layers.
 phoenix.setOpacity?.(1);
 renderer.render(scene, camera);
-firstPaintMs = performance.now() - bootStartedAt;
+firstRenderMs = performance.now() - bootStartedAt;
 loading?.classList.add('is-hidden');
-await new Promise((resolve) => window.setTimeout(resolve, 0));
-
 const scheduleIdle = window.requestIdleCallback
   ? (callback) => window.requestIdleCallback(callback, { timeout: 900 })
   : (callback) => window.setTimeout(callback, 220);
@@ -540,7 +538,7 @@ window.__PHOENIX_LAB__ = {
     renderPixelRatio,
     realtimeShadows: false,
     particleBudget,
-    firstPaintMs,
+    firstRenderMs,
     startupMs
   })
 };
