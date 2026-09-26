@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js';
-import { applyRoyalMaterial, updateRoyalMaterials, ROYAL } from './royal-material.js';
+import { applyRoyalMaterial, updateRoyalMaterials, ROYAL } from './royal-material.js?v=2.1.1';
 
 function materialColor(material) {
   if (Array.isArray(material)) return materialColor(material[0]);
