@@ -6,7 +6,7 @@ This repository started as a fork of the original 3D Particle Rose experiment an
 
 ## What exists now
 
-- Canonical optimized `models/royal-phoenix-v1.glb` with a volumetric body, crown-like crest, layered wings, crimson rose shoulder language, talons, and a flowing tail.
+- Canonical external `models/royal-phoenix-external-v1.glb`, optimized from a CC BY Sketchfab Phoenix sculpt and recolored at runtime with LoPRax royal materials.
 - Royal crimson / obsidian / antique-gold PBR material system.
 - Cinematic lighting, fog, bloom, stars, and ember field.
 - Particle phoenix whose target points are generated from the same 3D construction data as the solid model.
@@ -16,7 +16,7 @@ This repository started as a fork of the original 3D Particle Rose experiment an
 - Mobile-oriented quality presets, DPR limits, particle density control, and automatic fallback.
 - Reduced-motion support.
 - Static hosting and GitHub Pages compatibility.
-- Seven merged GLB material groups for low draw-call cost on mobile, with the procedural model retained as a fallback.
+- External Phoenix consolidated to one mesh for low draw-call cost; internal GLB and procedural Phoenix are retained as fallbacks.
 - Reference asset pack retained under `references/phoenix/`.
 
 ## Run locally
@@ -58,13 +58,17 @@ references/phoenix/
 
 ## GLB model pipeline
 
-The Lab now loads `models/royal-phoenix-v1.glb` by default. The model is generated reproducibly from `scripts/build_phoenix_glb.py`, while `createRoyalPhoenix()` remains the fallback. Both paths expose the same normalized particle-target structure:
+The Lab now loads `models/royal-phoenix-external-v1.glb` by default, normalizes it to the viewport, applies LoPRax royal vertex colors/PBR shading, and samples particles from its actual surface. The internally generated `models/royal-phoenix-v1.glb` and `createRoyalPhoenix()` remain fallbacks. Every path exposes the same normalized particle-target structure:
 
 ```js
 { positions: Float32Array, colors: Float32Array }
 ```
 
-A future sculpted or image-to-3D GLB can still replace this model without changing the particle system or UI: open the Lab with `?model=...`. Use `?procedural=1` to force the fallback.
+Any future sculpted or image-to-3D GLB can still replace the default without changing the particle system or UI: open the Lab with `?model=...`. Use `?procedural=1` to force the final procedural fallback.
+
+## External asset attribution
+
+The canonical external Phoenix is based on **Phoenix by rononono on Sketchfab**, used under Creative Commons Attribution (CC BY) and modified for LoPRax. Full attribution and modification notes are in `ASSET_CREDITS.md`.
 
 ## Verification
 
