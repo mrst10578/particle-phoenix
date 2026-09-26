@@ -3,11 +3,11 @@ import * as THREE from 'three';
 export const ROYAL = {
   obsidian: new THREE.Color(0x0b0507),
   charcoal: new THREE.Color(0x211015),
-  burgundy: new THREE.Color(0x480616),
-  crimson: new THREE.Color(0xa20d2d),
-  scarlet: new THREE.Color(0xd72c3c),
-  gold: new THREE.Color(0xd4aa58),
-  antiqueGold: new THREE.Color(0x8a622d),
+  burgundy: new THREE.Color(0x31040f),
+  crimson: new THREE.Color(0x760a22),
+  scarlet: new THREE.Color(0xa8152c),
+  gold: new THREE.Color(0xb98b43),
+  antiqueGold: new THREE.Color(0x745027),
   ember: new THREE.Color(0xff6137)
 };
 
@@ -24,19 +24,21 @@ export function royalColorForPoint(x, y, z, box, out = new THREE.Color()) {
   const featherGrain = 0.5 + 0.5 * Math.sin(x * 0.19 + y * 0.31 + z * 0.13);
   const vein = 0.5 + 0.5 * Math.sin((x - z) * 0.43);
 
-  const crimsonMask = THREE.MathUtils.clamp(0.16 + edge * 0.63 + featherGrain * 0.14, 0, 1);
-  const shadowMask = THREE.MathUtils.clamp((1 - edge) * 0.61 + (0.48 - ny) * 0.16, 0, 0.76);
-  const tipGold = THREE.MathUtils.smoothstep(edge, 0.86, 1.0);
-  const crestGold = THREE.MathUtils.smoothstep(ny, 0.91, 1.0) * 0.78;
-  const jewelGold = THREE.MathUtils.smoothstep(vein, 0.88, 1.0) * tipGold * 0.32;
-  const goldMask = Math.max(tipGold * 0.58, crestGold, jewelGold);
+  const crimsonMask = THREE.MathUtils.clamp(0.10 + edge * 0.48 + featherGrain * 0.10, 0, 1);
+  const shadowMask = THREE.MathUtils.clamp((1 - edge) * 0.70 + (0.58 - ny) * 0.22, 0, 0.86);
+  const tipGold = THREE.MathUtils.smoothstep(edge, 0.91, 1.0);
+  const crestGold = THREE.MathUtils.smoothstep(ny, 0.94, 1.0) * 0.46;
+  const jewel = THREE.MathUtils.smoothstep(vein, 0.94, 1.0);
+  const jewelGold = jewel * tipGold * 0.42;
+  const goldMask = Math.max(crestGold, jewelGold);
 
   out.copy(ROYAL.burgundy)
-    .lerp(ROYAL.crimson, crimsonMask * 0.78)
+    .lerp(ROYAL.crimson, crimsonMask * 0.58)
     .lerp(ROYAL.obsidian, shadowMask)
-    .lerp(ROYAL.gold, goldMask);
+    .lerp(ROYAL.antiqueGold, goldMask * 0.78)
+    .lerp(ROYAL.gold, goldMask * 0.22);
 
-  if (edge > 0.94 && ny < 0.76) out.lerp(ROYAL.ember, 0.12);
+  if (edge > 0.97 && ny < 0.70 && vein > 0.92) out.lerp(ROYAL.ember, 0.065);
   return out;
 }
 
@@ -105,7 +107,7 @@ varying vec3 vRoyalLocal;`
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
 float royalMicro = 0.5 + 0.5 * sin(vRoyalLocal.x * 0.73 + vRoyalLocal.y * 0.41 + vRoyalLocal.z * 0.57);
-roughnessFactor = clamp(roughnessFactor + (royalMicro - 0.5) * 0.085, 0.18, 0.52);`
+roughnessFactor = clamp(roughnessFactor + (royalMicro - 0.5) * 0.11, 0.27, 0.58);`
       )
       .replace(
         '#include <emissivemap_fragment>',
@@ -114,10 +116,10 @@ float royalVein = 0.5 + 0.5 * sin(vRoyalLocal.x * 0.31 + vRoyalLocal.y * 0.23 - 
 float royalEdgeGlow = smoothstep(0.76, 1.0, vRoyalEdge);
 float royalTailHeat = pow(clamp(1.0 - vRoyalHeight, 0.0, 1.0), 2.2);
 float royalFresnel = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 2.4);
-float royalEmber = royalEdgeGlow * royalVein * (0.035 + royalTailHeat * 0.055);
-royalEmber += uRoyalPulse * (0.07 + royalEdgeGlow * 0.16);
+float royalEmber = royalEdgeGlow * royalVein * (0.018 + royalTailHeat * 0.032);
+royalEmber += uRoyalPulse * (0.045 + royalEdgeGlow * 0.11);
 totalEmissiveRadiance += vec3(1.0, 0.075, 0.018) * royalEmber;
-totalEmissiveRadiance += vec3(0.36, 0.07, 0.018) * royalFresnel * royalEdgeGlow * (0.05 + uRoyalPulse * 0.04);`
+totalEmissiveRadiance += vec3(0.24, 0.035, 0.01) * royalFresnel * royalEdgeGlow * (0.035 + uRoyalPulse * 0.03);`
       );
 
     material.userData.royalShader = shader;
@@ -149,26 +151,26 @@ export function applyRoyalMaterial(mesh) {
 
   const material = new THREE.MeshPhysicalMaterial({
     vertexColors: true,
-    metalness: 0.46,
-    roughness: 0.29,
-    clearcoat: 0.42,
-    clearcoatRoughness: 0.22,
-    sheen: 0.48,
-    sheenColor: new THREE.Color(0x7e102d),
-    iridescence: 0.08,
+    metalness: 0.28,
+    roughness: 0.39,
+    clearcoat: 0.20,
+    clearcoatRoughness: 0.34,
+    sheen: 0.56,
+    sheenColor: new THREE.Color(0x5b091d),
+    iridescence: 0.035,
     iridescenceIOR: 1.4,
     emissive: new THREE.Color(0x140105),
-    emissiveIntensity: 0.16,
-    specularIntensity: 0.82,
-    specularColor: new THREE.Color(0xffd89a),
+    emissiveIntensity: 0.085,
+    specularIntensity: 0.56,
+    specularColor: new THREE.Color(0xcaa56a),
     side: THREE.DoubleSide
   });
 
   if ('anisotropy' in material) {
-    material.anisotropy = 0.72;
+    material.anisotropy = 0.86;
     material.anisotropyRotation = Math.PI * 0.08;
   }
-  material.envMapIntensity = 1.42;
+  material.envMapIntensity = 1.02;
   material.name = 'LoPRaxRoyalPhoenixV2';
   attachRoyalShader(material, box);
 
