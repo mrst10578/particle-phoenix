@@ -32,7 +32,7 @@ if (missing.length) {
 }
 
 const html = readFileSync('index.html', 'utf8');
-for (const token of ['./src/styles.css', './src/app.js', 'type="importmap"']) {
+for (const token of ['./src/styles.css', './src/app.js', 'type="importmap"', 'royal-phoenix-external-v1.glb', 'preconnect']) {
   if (!html.includes(token)) {
     console.error('index.html is missing required token:', token);
     process.exit(1);
@@ -53,7 +53,10 @@ for (const token of [
   'CinematicShader',
   'createRoyalAudioCue',
   'RoyalPhoenixMotionRoot',
-  'triggerRoyalPulse'
+  'triggerRoyalPulse',
+  'computeRenderPixelRatio',
+  'particleBudget',
+  'firstPaintMs'
 ]) {
   if (!app.includes(token)) {
     console.error('app.js is missing V2 integration token:', token);
@@ -86,4 +89,19 @@ if (!readFileSync('src/particles.js', 'utf8').includes('ShaderMaterial')) {
   process.exit(1);
 }
 
-console.log('Royal Phoenix V2 static project contract OK');
+if (!app.includes('renderer.shadowMap.enabled = false')) {
+  console.error('Optimized runtime must keep expensive realtime shadow maps disabled');
+  process.exit(1);
+}
+
+if (!readFileSync('src/cinematic-effects.js', 'utf8').includes('makeContactShadowTexture')) {
+  console.error('Optimized runtime is missing the lightweight contact-shadow replacement');
+  process.exit(1);
+}
+
+if (!readFileSync('src/particles.js', 'utf8').includes('uOpacity')) {
+  console.error('Hybrid particle opacity optimization is missing');
+  process.exit(1);
+}
+
+console.log('Royal Phoenix V2 optimized static project contract OK');
