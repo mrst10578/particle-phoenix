@@ -138,8 +138,8 @@ function makeAura(anchors, { count, kind, pixelRatio }) {
         vec2 q = gl_PointCoord - 0.5;
         float d = length(q) * 2.0;
         if (d > 1.0) discard;
-        float soft = smoothstep(1.0, 0.06, d);
-        float core = smoothstep(0.34, 0.0, d);
+        float soft = 1.0 - smoothstep(0.06, 1.0, d);
+        float core = 1.0 - smoothstep(0.0, 0.34, d);
         float alpha = mix(0.22, 0.66, vKind) * soft * (0.55 + core * 0.65);
         alpha *= 0.72 + fract(vSeed * 11.7) * 0.28;
         alpha *= uIntro;
