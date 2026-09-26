@@ -303,17 +303,29 @@ for side in (-1, 1):
 
 ellipsoid("CrownGem", [0, 0.42, 0.70], [0.12, 0.16, 0.07], MATERIALS["gold"], 2)
 
-payload = scene.export(file_type="glb")
+# Merge by material so the browser renders a small number of draw calls.
+optimized = trimesh.Scene()
+groups = {}
+for mesh in scene.geometry.values():
+    material_name = getattr(getattr(mesh.visual, "material", None), "name", None) or "Material"
+    groups.setdefault(material_name, []).append(mesh)
+
+for material_name, meshes in groups.items():
+    merged = trimesh.util.concatenate(meshes)
+    merged.visual = trimesh.visual.TextureVisuals(material=meshes[0].visual.material)
+    optimized.add_geometry(merged, geom_name=material_name, node_name=material_name)
+
+payload = optimized.export(file_type="glb")
 OUT.write_bytes(payload)
 
 loaded = trimesh.load(OUT, force="scene")
 bounds = loaded.bounds
 assert len(payload) > 100_000
-assert len(loaded.geometry) >= 250
+assert 4 <= len(loaded.geometry) <= 10
 assert bounds[0][0] < -6 and bounds[1][0] > 6
 assert bounds[0][1] < -5 and bounds[1][1] > 3
 
 print(
     f"generated {OUT}: {len(payload)} bytes, "
-    f"{len(loaded.geometry)} geometries, bounds={bounds.tolist()}"
+    f"{len(loaded.geometry)} merged geometries, bounds={bounds.tolist()}"
 )
