@@ -42,13 +42,15 @@ function makeAnchors(meshes, sampleCount) {
 export async function loadPhoenixGLB(url, { sampleCount = 12000 } = {}) {
   const loader = new GLTFLoader();
   const gltf = await loader.loadAsync(url);
-  const group = gltf.scene;
+  const sourceScene = gltf.scene;
+  const group = new THREE.Group();
   group.name = 'ExternalPhoenixGLB';
+  group.add(sourceScene);
   group.updateMatrixWorld(true);
 
   const meshes = [];
   const materials = new Set();
-  group.traverse((node) => {
+  sourceScene.traverse((node) => {
     if (!node.isMesh) return;
     node.castShadow = false;
     node.receiveShadow = false;
