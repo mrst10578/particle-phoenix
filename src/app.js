@@ -14,6 +14,9 @@ import { createCinematicEnvironment } from './cinematic-effects.js';
 import { CinematicShader } from './postfx.js';
 import { createRoyalAudioCue } from './royal-audio.js';
 
+const bootStartedAt = performance.now();
+let firstPaintMs = null;
+
 const viewport = document.querySelector('[data-viewport]');
 const loading = document.querySelector('[data-loading]');
 const params = new URLSearchParams(window.location.search);
@@ -90,6 +93,7 @@ controls.autoRotate = !reducedMotion;
 controls.autoRotateSpeed = 0.46;
 
 const composer = new EffectComposer(renderer);
+composer.setPixelRatio(renderPixelRatio);
 composer.addPass(new RenderPass(scene, camera));
 
 const bloomPass = new UnrealBloomPass(
@@ -178,6 +182,7 @@ scene.add(motionRoot);
 // First paint the actual Phoenix before building the heavier particle/FX layers.
 phoenix.setOpacity?.(1);
 renderer.render(scene, camera);
+firstPaintMs = performance.now() - bootStartedAt;
 loading?.classList.add('is-hidden');
 await new Promise((resolve) => requestAnimationFrame(resolve));
 
@@ -193,6 +198,7 @@ const particleSystem = createPhoenixParticles({
 });
 particleSystem.points.position.copy(phoenix.group.position);
 particleSystem.points.scale.copy(phoenix.group.scale);
+particleSystem.setPointSize(isMobile ? 0.11 : 0.10);
 motionRoot.add(particleSystem.points);
 
 const featherAccents = createFeatherAccents(phoenix.anchors, {
@@ -486,6 +492,7 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setPixelRatio(renderPixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight, false);
+  composer.setPixelRatio(renderPixelRatio);
   composer.setSize(window.innerWidth, window.innerHeight);
   particleSystem.setPixelRatio(renderPixelRatio);
   cinematicPass.uniforms.uResolution.value.set(
@@ -507,8 +514,10 @@ window.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'a') awakenSequence();
 });
 
+const startupMs = performance.now() - bootStartedAt;
+
 window.__PHOENIX_LAB__ = {
-  version: '2.0.0',
+  version: '2.1.0',
   setShape,
   setDisplay,
   pulse: (amount = 1) => triggerRoyalPulse({ sensory: false, amount }),
@@ -530,7 +539,9 @@ window.__PHOENIX_LAB__ = {
     performanceProfile,
     renderPixelRatio,
     realtimeShadows: false,
-    particleBudget
+    particleBudget,
+    firstPaintMs,
+    startupMs
   })
 };
 
