@@ -16,6 +16,8 @@ import { createRoyalAudioCue } from './royal-audio.js';
 
 const viewport = document.querySelector('[data-viewport]');
 const loading = document.querySelector('[data-loading]');
+const params = new URLSearchParams(window.location.search);
+const captureMode = params.get('capture') === '1';
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 820;
 const maxPixelRatio = Math.min(window.devicePixelRatio, 3);
@@ -30,7 +32,8 @@ camera.position.set(0, 0.18, isMobile ? 13.15 : 11.75);
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
   alpha: false,
-  powerPreference: 'high-performance'
+  powerPreference: 'high-performance',
+  preserveDrawingBuffer: captureMode
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(maxPixelRatio);
@@ -121,7 +124,6 @@ const baseLight = {
 
 let phoenix = createRoyalPhoenix();
 let modelSource = 'procedural';
-const params = new URLSearchParams(window.location.search);
 const proceduralOnly = params.get('procedural') === '1';
 const customModelUrl = params.get('model');
 
@@ -399,7 +401,8 @@ window.__PHOENIX_LAB__ = {
     motion: motionEnabled,
     intro,
     pulse: heroFx.pulse,
-    menu: false
+    menu: false,
+    captureMode
   })
 };
 
