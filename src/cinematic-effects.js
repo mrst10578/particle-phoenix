@@ -34,6 +34,21 @@ function makeRadialTexture(inner = 'rgba(255,210,110,.85)', outer = 'rgba(80,0,1
   return texture;
 }
 
+function makeContactShadowTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createRadialGradient(128, 64, 4, 128, 64, 120);
+  g.addColorStop(0, 'rgba(0,0,0,.82)');
+  g.addColorStop(0.30, 'rgba(0,0,0,.52)');
+  g.addColorStop(0.68, 'rgba(0,0,0,.16)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 128);
+  return new THREE.CanvasTexture(canvas);
+}
+
 function makeAura(anchors, { count, kind, pixelRatio }) {
   const { box, center, size } = boundsFromAnchors(anchors);
   const base = new Float32Array(count * 3);
@@ -325,8 +340,25 @@ export function createCinematicEnvironment({
   const floor = new THREE.Mesh(new THREE.CircleGeometry(span * 0.63, 128), floorMaterial);
   floor.rotation.x = -Math.PI * 0.5;
   floor.position.set(center.x, floorY, center.z);
-  floor.receiveShadow = true;
+  floor.receiveShadow = false;
   group.add(floor);
+
+  const contactShadowTexture = makeContactShadowTexture();
+  const contactShadowMaterial = new THREE.MeshBasicMaterial({
+    map: contactShadowTexture,
+    transparent: true,
+    opacity: 0.58,
+    depthWrite: false,
+    toneMapped: false,
+    side: THREE.DoubleSide
+  });
+  const contactShadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(span * 0.78, span * 0.34),
+    contactShadowMaterial
+  );
+  contactShadow.rotation.x = -Math.PI * 0.5;
+  contactShadow.position.set(center.x, floorY + 0.018, center.z + span * 0.015);
+  group.add(contactShadow);
 
   const floorRingMaterial = new THREE.MeshBasicMaterial({
     color: 0x8c1731,
@@ -341,11 +373,11 @@ export function createCinematicEnvironment({
   floorRing.position.set(center.x, floorY + 0.012, center.z);
   group.add(floorRing);
 
-  const ember = makeAura(anchors, { count: isMobile ? 900 : 1800, kind: 'ember', pixelRatio });
-  const ash = makeAura(anchors, { count: isMobile ? 460 : 900, kind: 'ash', pixelRatio });
+  const ember = makeAura(anchors, { count: isMobile ? 560 : 1050, kind: 'ember', pixelRatio });
+  const ash = makeAura(anchors, { count: isMobile ? 240 : 480, kind: 'ash', pixelRatio });
   group.add(ember.points, ash.points);
 
-  const petals = makePetals({ count: isMobile ? 34 : 68, span });
+  const petals = makePetals({ count: isMobile ? 24 : 42, span });
   group.add(petals.mesh);
 
   let pulse = 0;
@@ -382,6 +414,7 @@ export function createCinematicEnvironment({
     rayMaterial.opacity = (0.14 + pulse * 0.28) * intro;
     constellationMaterial.opacity = (0.46 + pulse * 0.26) * intro;
     floorMaterial.opacity = 0.58 * intro;
+    contactShadowMaterial.opacity = (0.48 + pulse * 0.08) * intro;
     floorRingMaterial.opacity = (0.12 + pulse * 0.2) * intro;
 
     const ringScale = 0.78 + (1 - pulse) * 0.8;
@@ -417,6 +450,9 @@ export function createCinematicEnvironment({
     pulseMaterial.dispose();
     floor.geometry.dispose();
     floorMaterial.dispose();
+    contactShadow.geometry.dispose();
+    contactShadowMaterial.dispose();
+    contactShadowTexture.dispose();
     floorRing.geometry.dispose();
     floorRingMaterial.dispose();
     ember.geometry.dispose();
