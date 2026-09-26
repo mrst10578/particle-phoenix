@@ -29,6 +29,7 @@ jobs:
           mkdir -p _site
           cp index.html _site/index.html
           cp -R src _site/src
+          cp -R models _site/models
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
