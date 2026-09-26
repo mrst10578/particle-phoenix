@@ -91,16 +91,27 @@ button:focus-visible, select:focus-visible, input:focus-visible {
 .panel-head div { display: grid; gap: 2px; }
 .panel-head strong { font-family: Georgia, serif; color: var(--gold-soft); font-size: 16px; }
 .panel-head small { color: var(--muted); font-size: 11px; }
-.icon-btn {
-  width: 38px; height: 38px; border-radius: 12px;
-  border: 1px solid var(--line); background: rgba(255,255,255,.035);
-  cursor: pointer;
-}
-
 .panel-body { padding: 14px; display: grid; gap: 14px; }
-.lab-panel.is-collapsed .panel-body { display: none; }
-.lab-panel.is-collapsed { width: auto; }
-.lab-panel.is-collapsed .panel-head > div { display: none; }
+.quality-lock {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(216,177,92,.2);
+  border-radius: 13px;
+  background: linear-gradient(135deg, rgba(216,177,92,.09), rgba(166,14,45,.08));
+}
+.quality-lock strong {
+  color: var(--gold-soft);
+  font-size: 11px;
+  letter-spacing: .12em;
+}
+.quality-lock span {
+  color: #bca8a2;
+  font-size: 9px;
+  letter-spacing: .035em;
+}
 
 .control {
   display: grid;
