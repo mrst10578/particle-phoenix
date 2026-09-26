@@ -100,8 +100,8 @@ export async function loadPhoenixGLB(
 
   sourceScene.traverse((node) => {
     if (!node.isMesh) return;
-    node.castShadow = true;
-    node.receiveShadow = true;
+    node.castShadow = false;
+    node.receiveShadow = false;
 
     if (royalize) {
       const material = applyRoyalMaterial(node);
