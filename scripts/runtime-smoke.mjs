@@ -37,9 +37,9 @@ try {
   if (state.captureMode !== true) throw new Error('Capture verification mode did not activate');
   if (state.particles < 18000) throw new Error('Desktop particle count unexpectedly low: ' + state.particles);
   if (state.realtimeShadows !== false) throw new Error('Realtime shadows should be disabled in the optimized runtime');
-  if (!(state.firstPaintMs > 0 && state.startupMs > state.firstPaintMs)) {
+  if (!(state.firstRenderMs > 0 && state.startupMs > state.firstRenderMs)) {
     throw new Error('Expected first Phoenix paint before full FX startup: ' + JSON.stringify({
-      firstPaintMs: state.firstPaintMs,
+      firstRenderMs: state.firstRenderMs,
       startupMs: state.startupMs
     }));
   }
@@ -123,9 +123,9 @@ try {
   if (mobileState.realtimeShadows !== false) {
     throw new Error('Realtime shadows unexpectedly enabled on mobile');
   }
-  if (!(mobileState.firstPaintMs > 0 && mobileState.startupMs > mobileState.firstPaintMs)) {
+  if (!(mobileState.firstRenderMs > 0 && mobileState.startupMs > mobileState.firstRenderMs)) {
     throw new Error('Mobile first paint did not precede full FX startup: ' + JSON.stringify({
-      firstPaintMs: mobileState.firstPaintMs,
+      firstRenderMs: mobileState.firstRenderMs,
       startupMs: mobileState.startupMs
     }));
   }
