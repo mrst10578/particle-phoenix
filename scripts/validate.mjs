@@ -10,7 +10,9 @@ const required = [
   'src/ui.js',
   'src/glb-adapter.js',
   'models/README.md',
+  'models/royal-phoenix-external-v1.glb',
   'models/royal-phoenix-v1.glb',
+  'ASSET_CREDITS.md',
   'docs/PRODUCT_SPEC.md',
   'docs/IMPLEMENTATION_PLAN.md',
   'references/phoenix/LoPRax_Phoenix_3D_Reference_Pack.zip'
@@ -38,14 +40,21 @@ for (const token of ['createRoyalPhoenix', 'loadPhoenixGLB', 'createPhoenixParti
   }
 }
 
-const glb = readFileSync('models/royal-phoenix-v1.glb');
-if (glb.length < 100_000 || glb.subarray(0, 4).toString('ascii') !== 'glTF') {
-  console.error('Royal Phoenix GLB is missing or invalid');
+for (const modelPath of ['models/royal-phoenix-external-v1.glb', 'models/royal-phoenix-v1.glb']) {
+  const glb = readFileSync(modelPath);
+  if (glb.length < 100_000 || glb.subarray(0, 4).toString('ascii') !== 'glTF') {
+    console.error('Phoenix GLB is missing or invalid:', modelPath);
+    process.exit(1);
+  }
+}
+
+if (!app.includes("./models/royal-phoenix-external-v1.glb")) {
+  console.error('app.js does not load the external Royal Phoenix GLB by default');
   process.exit(1);
 }
 
 if (!app.includes("./models/royal-phoenix-v1.glb")) {
-  console.error('app.js does not load the canonical Royal Phoenix GLB by default');
+  console.error('app.js does not retain the internal GLB fallback');
   process.exit(1);
 }
 
