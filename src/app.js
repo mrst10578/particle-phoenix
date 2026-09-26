@@ -74,12 +74,19 @@ goldRim.position.set(5.2, -1.2, -2.5);
 scene.add(goldRim);
 
 let phoenix = createRoyalPhoenix();
-const externalModelUrl = new URLSearchParams(window.location.search).get('model');
+let modelSource = 'procedural';
+const params = new URLSearchParams(window.location.search);
+const proceduralOnly = params.get('procedural') === '1';
+const externalModelUrl = proceduralOnly
+  ? null
+  : (params.get('model') || './models/royal-phoenix-v1.glb');
+
 if (externalModelUrl) {
   try {
     phoenix = await loadPhoenixGLB(externalModelUrl, { sampleCount: isMobile ? 8500 : 14000 });
+    modelSource = 'glb';
   } catch (error) {
-    console.warn('External GLB failed; using procedural phoenix instead.', error);
+    console.warn('Royal Phoenix GLB failed; using procedural fallback.', error);
   }
 }
 phoenix.group.scale.setScalar(isMobile ? 0.91 : 1);
@@ -316,11 +323,11 @@ window.__PHOENIX_LAB__ = {
   setShape,
   setDisplay,
   phoenixAdapter: phoenix.adapterContract,
-  getState: () => ({ quality, displayMode, shapeMode, particles: particleSystem.activeCount })
+  getState: () => ({ quality, displayMode, shapeMode, particles: particleSystem.activeCount, modelSource })
 };
 
 requestAnimationFrame(() => {
   loading?.classList.add('is-hidden');
-  ui.setStatus('Royal Phoenix Lab ready');
+  ui.setStatus(modelSource === 'glb' ? 'Royal Phoenix GLB ready' : 'Procedural fallback ready');
 });
 animate();
