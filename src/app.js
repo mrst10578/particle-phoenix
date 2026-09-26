@@ -15,8 +15,8 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matc
 const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 820;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050203);
-scene.fog = new THREE.FogExp2(0x070204, isMobile ? 0.043 : 0.034);
+scene.background = new THREE.Color(0x030102);
+scene.fog = new THREE.FogExp2(0x050102, isMobile ? 0.034 : 0.027);
 
 const camera = new THREE.PerspectiveCamera(43, window.innerWidth / window.innerHeight, 0.1, 80);
 camera.position.set(0, 0.15, isMobile ? 12.7 : 11.2);
@@ -30,7 +30,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.35 : 1.8));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.14;
+renderer.toneMappingExposure = 1.18;
 renderer.shadowMap.enabled = false;
 viewport.appendChild(renderer.domElement);
 
@@ -57,40 +57,54 @@ const bloomPass = new UnrealBloomPass(
 composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
 
-const hemi = new THREE.HemisphereLight(0x8f2637, 0x070204, 0.8);
+const hemi = new THREE.HemisphereLight(0x6f162b, 0x030102, 0.52);
 scene.add(hemi);
 
-const key = new THREE.SpotLight(0xffb75c, 180, 28, Math.PI * 0.24, 0.85, 1.2);
-key.position.set(4.5, 7.5, 6);
-key.target.position.set(0, 0, 0);
+const key = new THREE.SpotLight(0xffc878, 145, 28, Math.PI * 0.22, 0.82, 1.15);
+key.position.set(4.6, 7.8, 6.5);
+key.target.position.set(0, 0.15, 0);
 scene.add(key, key.target);
 
-const crimsonRim = new THREE.PointLight(0xff1738, 95, 18, 1.8);
-crimsonRim.position.set(-5.5, 1.5, -3.5);
+const crimsonRim = new THREE.PointLight(0xff153d, 120, 19, 1.75);
+crimsonRim.position.set(-5.8, 1.9, -3.8);
 scene.add(crimsonRim);
 
-const goldRim = new THREE.PointLight(0xffcf77, 70, 16, 1.7);
-goldRim.position.set(5.2, -1.2, -2.5);
+const goldRim = new THREE.PointLight(0xffd68a, 92, 17, 1.65);
+goldRim.position.set(5.4, -0.4, -2.8);
 scene.add(goldRim);
+
+const royalFill = new THREE.PointLight(0x8d1733, 34, 13, 2);
+royalFill.position.set(0, -4.2, 4.5);
+scene.add(royalFill);
 
 let phoenix = createRoyalPhoenix();
 let modelSource = 'procedural';
 const params = new URLSearchParams(window.location.search);
 const proceduralOnly = params.get('procedural') === '1';
-const externalModelUrl = proceduralOnly
-  ? null
-  : (params.get('model') || './models/royal-phoenix-v1.glb');
+const customModelUrl = params.get('model');
 
-if (externalModelUrl) {
+const modelCandidates = proceduralOnly ? [] : [
+  ...(customModelUrl ? [{ url: customModelUrl, source: 'custom-glb' }] : []),
+  { url: './models/royal-phoenix-external-v1.glb', source: 'external-glb' },
+  { url: './models/royal-phoenix-v1.glb', source: 'internal-glb' }
+];
+
+for (const candidate of modelCandidates) {
   try {
-    phoenix = await loadPhoenixGLB(externalModelUrl, { sampleCount: isMobile ? 8500 : 14000 });
-    modelSource = 'glb';
+    phoenix = await loadPhoenixGLB(candidate.url, {
+      sampleCount: isMobile ? 8500 : 14000,
+      targetSpan: isMobile ? 7.35 : 8.1,
+      royalize: true
+    });
+    modelSource = candidate.source;
+    break;
   } catch (error) {
-    console.warn('Royal Phoenix GLB failed; using procedural fallback.', error);
+    console.warn('Phoenix GLB candidate failed:', candidate.url, error);
   }
 }
-phoenix.group.scale.setScalar(isMobile ? 0.91 : 1);
-phoenix.group.position.y = 0.25;
+
+phoenix.group.scale.setScalar(isMobile ? 0.92 : 1);
+phoenix.group.position.y = 0.08;
 scene.add(phoenix.group);
 
 const particleSystem = createPhoenixParticles({
@@ -215,7 +229,7 @@ function setDisplay(mode) {
     particleSystem.points.visible = true;
   } else {
     phoenix.group.visible = true;
-    phoenix.setOpacity(0.5);
+    phoenix.setOpacity(0.72);
     particleSystem.points.visible = true;
   }
   ui.activateDisplay(mode);
@@ -319,7 +333,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.__PHOENIX_LAB__ = {
-  version: '1.0.0',
+  version: '1.1.0',
   setShape,
   setDisplay,
   phoenixAdapter: phoenix.adapterContract,
@@ -328,6 +342,12 @@ window.__PHOENIX_LAB__ = {
 
 requestAnimationFrame(() => {
   loading?.classList.add('is-hidden');
-  ui.setStatus(modelSource === 'glb' ? 'Royal Phoenix GLB ready' : 'Procedural fallback ready');
+  const sourceLabels = {
+    'external-glb': 'External Royal Phoenix ready',
+    'custom-glb': 'Custom Royal Phoenix ready',
+    'internal-glb': 'Internal GLB fallback ready',
+    procedural: 'Procedural fallback ready'
+  };
+  ui.setStatus(sourceLabels[modelSource] || 'Royal Phoenix ready');
 });
 animate();
