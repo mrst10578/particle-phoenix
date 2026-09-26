@@ -60,39 +60,10 @@ try {
   if (!(after.pulse > 0)) throw new Error('Royal Pulse did not activate');
 
   const visual = await page.evaluate(() => {
-    const canvas = document.querySelector('.viewport canvas');
-    if (!canvas) return { error: 'missing-canvas' };
-    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-    if (!gl) return { error: 'missing-webgl-context' };
-
-    const width = Math.min(canvas.width, 720);
-    const height = Math.min(canvas.height, 720);
-    const x = Math.max(0, Math.floor((canvas.width - width) / 2));
-    const y = Math.max(0, Math.floor((canvas.height - height) / 2));
-    const pixels = new Uint8Array(width * height * 4);
-    gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-
-    let lit = 0;
-    let bright = 0;
-    let maxLuma = 0;
-    let totalLuma = 0;
-    const sampleCount = width * height;
-    for (let i = 0; i < pixels.length; i += 4) {
-      const luma = pixels[i] * 0.2126 + pixels[i + 1] * 0.7152 + pixels[i + 2] * 0.0722;
-      totalLuma += luma;
-      if (luma > 8) lit++;
-      if (luma > 28) bright++;
-      if (luma > maxLuma) maxLuma = luma;
+    if (typeof window.__PHOENIX_LAB__.captureProbe !== 'function') {
+      return { error: 'missing-capture-probe' };
     }
-
-    return {
-      width,
-      height,
-      litRatio: lit / sampleCount,
-      brightRatio: bright / sampleCount,
-      meanLuma: totalLuma / sampleCount,
-      maxLuma
-    };
+    return window.__PHOENIX_LAB__.captureProbe(512);
   });
 
   if (visual.error) throw new Error('Framebuffer probe failed: ' + visual.error);
@@ -102,13 +73,15 @@ try {
 
   await mkdir('artifacts', { recursive: true });
   try {
-    const dataUrl = await page.evaluate(() => document.querySelector('.viewport canvas')?.toDataURL('image/png') || null);
-    if (dataUrl?.startsWith('data:image/png;base64,')) {
-      await writeFile('artifacts/phoenix-v2-canvas.png', Buffer.from(dataUrl.split(',')[1], 'base64'));
+    if (visual.dataUrl?.startsWith('data:image/png;base64,')) {
+      await writeFile('artifacts/phoenix-v2-model-probe.png', Buffer.from(visual.dataUrl.split(',')[1], 'base64'));
     }
   } catch (error) {
-    console.warn('Canvas evidence capture skipped:', error.message);
+    console.warn('Model probe evidence capture skipped:', error.message);
   }
+
+  const visualSummary = { ...visual };
+  delete visualSummary.dataUrl;
 
   if (errors.length) {
     throw new Error('Runtime errors detected:\n' + errors.join('\n'));
@@ -120,7 +93,7 @@ try {
     adapter,
     ui,
     after,
-    visual
+    visual: visualSummary
   }, null, 2));
 } finally {
   await browser.close();
