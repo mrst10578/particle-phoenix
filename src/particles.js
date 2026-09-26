@@ -1,23 +1,6 @@
 import * as THREE from 'three';
 import { createRoseShape, createCrownShape, createScatterShape } from './shapes.js';
 
-function createGlowTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 64;
-  canvas.height = 64;
-  const ctx = canvas.getContext('2d');
-  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-  g.addColorStop(0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.12, 'rgba(255,245,220,.95)');
-  g.addColorStop(0.35, 'rgba(255,110,65,.45)');
-  g.addColorStop(1, 'rgba(255,30,15,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 64, 64);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
 function resample(source, count) {
   const srcCount = source.positions.length / 3;
   const positions = new Float32Array(count * 3);
@@ -38,7 +21,83 @@ function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-export function createPhoenixParticles({ phoenixTargets, count = 9000 }) {
+const vertexShader = /* glsl */`
+  attribute vec3 aFrom;
+  attribute vec3 aTo;
+  attribute vec3 aColorFrom;
+  attribute vec3 aColorTo;
+  attribute float aSeed;
+
+  uniform float uProgress;
+  uniform float uTime;
+  uniform float uMotion;
+  uniform float uPulse;
+  uniform float uDriftScale;
+  uniform float uPixelRatio;
+  uniform float uPointScale;
+
+  varying vec3 vColor;
+  varying float vSeed;
+  varying float vPulse;
+
+  void main() {
+    float e = uProgress;
+    vec3 pos = mix(aFrom, aTo, e);
+
+    float phase = aSeed * 6.28318530718;
+    vec3 drift = vec3(
+      sin(uTime * 1.31 + phase),
+      cos(uTime * 1.03 + phase * 1.7),
+      sin(uTime * 1.19 + phase * 0.63)
+    ) * uDriftScale * uMotion;
+
+    pos += drift;
+    pos *= 1.0 + uPulse * (0.010 + aSeed * 0.012);
+
+    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
+
+    float classScale = mix(0.72, 1.55, fract(aSeed * 7.31));
+    float depthScale = clamp(8.0 / max(4.0, -mvPosition.z), 0.55, 1.45);
+    gl_PointSize = (2.3 + classScale * 2.7) * uPixelRatio * uPointScale * depthScale * (1.0 + uPulse * 0.32);
+
+    vec3 baseColor = mix(aColorFrom, aColorTo, e);
+    float goldClass = step(0.88, aSeed);
+    float emberClass = 1.0 - step(0.17, aSeed);
+    baseColor = mix(baseColor, vec3(1.0, 0.74, 0.30), goldClass * 0.24);
+    baseColor = mix(baseColor, vec3(1.0, 0.15, 0.035), emberClass * 0.18);
+
+    vColor = baseColor;
+    vSeed = aSeed;
+    vPulse = uPulse;
+  }
+`;
+
+const fragmentShader = /* glsl */`
+  varying vec3 vColor;
+  varying float vSeed;
+  varying float vPulse;
+
+  void main() {
+    vec2 p = gl_PointCoord - 0.5;
+    float d = length(p) * 2.0;
+    if (d > 1.0) discard;
+
+    float glow = pow(max(0.0, 1.0 - d), 2.15);
+    float core = smoothstep(0.36, 0.0, d);
+    float soft = smoothstep(1.0, 0.12, d);
+    float dustClass = smoothstep(0.0, 0.24, vSeed) * (1.0 - smoothstep(0.24, 0.46, vSeed));
+    float alpha = soft * mix(0.44, 0.92, core);
+    alpha *= mix(0.68, 1.0, dustClass);
+    alpha *= 0.82 + vPulse * 0.18;
+
+    vec3 color = vColor * (0.72 + core * 1.35 + glow * 0.72);
+    color += vec3(1.0, 0.34, 0.06) * glow * (0.08 + vPulse * 0.12);
+    gl_FragColor = vec4(color, alpha);
+  }
+`;
+
+export function createPhoenixParticles({ phoenixTargets, count = 22000, pixelRatio = 1 }) {
   const targets = {
     phoenix: resample(phoenixTargets, count),
     rose: createRoseShape(count),
@@ -46,109 +105,122 @@ export function createPhoenixParticles({ phoenixTargets, count = 9000 }) {
     scatter: createScatterShape(count)
   };
 
-  const current = new Float32Array(targets.scatter.positions);
-  const from = new Float32Array(current);
+  const from = new Float32Array(targets.scatter.positions);
   const to = new Float32Array(targets.phoenix.positions);
-  const currentColors = new Float32Array(targets.scatter.colors);
-  const colorFrom = new Float32Array(currentColors);
+  const colorFrom = new Float32Array(targets.scatter.colors);
   const colorTo = new Float32Array(targets.phoenix.colors);
   const seeds = new Float32Array(count);
-  for (let i = 0; i < count; i++) seeds[i] = Math.random() * Math.PI * 2;
+  for (let i = 0; i < count; i++) seeds[i] = ((i * 16807) % 2147483647) / 2147483647;
 
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(current, 3));
-  geometry.setAttribute('color', new THREE.BufferAttribute(currentColors, 3));
+  geometry.setAttribute('position', new THREE.BufferAttribute(from, 3));
+  geometry.setAttribute('aFrom', new THREE.BufferAttribute(from, 3));
+  geometry.setAttribute('aTo', new THREE.BufferAttribute(to, 3));
+  geometry.setAttribute('aColorFrom', new THREE.BufferAttribute(colorFrom, 3));
+  geometry.setAttribute('aColorTo', new THREE.BufferAttribute(colorTo, 3));
+  geometry.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
 
-  const material = new THREE.PointsMaterial({
-    size: 0.105,
-    map: createGlowTexture(),
-    vertexColors: true,
+  const uniforms = {
+    uProgress: { value: 0 },
+    uTime: { value: 0 },
+    uMotion: { value: 1 },
+    uPulse: { value: 0 },
+    uDriftScale: { value: 0.018 },
+    uPixelRatio: { value: pixelRatio },
+    uPointScale: { value: 1 }
+  };
+
+  const material = new THREE.ShaderMaterial({
+    uniforms,
+    vertexShader,
+    fragmentShader,
     transparent: true,
-    opacity: 0.96,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
-    sizeAttenuation: true
+    depthTest: true
   });
 
   const points = new THREE.Points(geometry, material);
-  points.name = 'PhoenixParticles';
+  points.name = 'PhoenixParticlesV2';
+  points.frustumCulled = false;
+
   let progress = 0;
-  let duration = 1.35;
+  let duration = 1.45;
   let targetName = 'phoenix';
-  let density = 0.72;
-  let visibleCount = Math.floor(count * density);
+  let density = 1;
+  let visibleCount = count;
+  let pulse = 0;
   geometry.setDrawRange(0, visibleCount);
 
-  function setTarget(name, { immediate = false, seconds = 1.35 } = {}) {
+  function bakeCurrentIntoFrom() {
+    const eased = easeInOutCubic(progress);
+    const fromAttr = geometry.attributes.aFrom.array;
+    const toAttr = geometry.attributes.aTo.array;
+    const fromColor = geometry.attributes.aColorFrom.array;
+    const toColor = geometry.attributes.aColorTo.array;
+
+    for (let i = 0; i < count * 3; i++) {
+      fromAttr[i] = THREE.MathUtils.lerp(fromAttr[i], toAttr[i], eased);
+      fromColor[i] = THREE.MathUtils.lerp(fromColor[i], toColor[i], eased);
+    }
+  }
+
+  function setTarget(name, { immediate = false, seconds = 1.45 } = {}) {
     const next = targets[name];
     if (!next) return;
-    from.set(current);
-    colorFrom.set(currentColors);
-    to.set(next.positions);
-    colorTo.set(next.colors);
+
+    bakeCurrentIntoFrom();
+    geometry.attributes.aTo.array.set(next.positions);
+    geometry.attributes.aColorTo.array.set(next.colors);
+    geometry.attributes.aFrom.needsUpdate = true;
+    geometry.attributes.aTo.needsUpdate = true;
+    geometry.attributes.aColorFrom.needsUpdate = true;
+    geometry.attributes.aColorTo.needsUpdate = true;
+
     targetName = name;
     duration = Math.max(0.2, seconds);
     progress = immediate ? 1 : 0;
+    uniforms.uProgress.value = immediate ? 1 : 0;
+    uniforms.uDriftScale.value = name === 'scatter' ? 0.065 : 0.018;
+
     if (immediate) {
-      current.set(to);
-      currentColors.set(colorTo);
-      geometry.attributes.position.needsUpdate = true;
-      geometry.attributes.color.needsUpdate = true;
+      geometry.attributes.aFrom.array.set(next.positions);
+      geometry.attributes.aColorFrom.array.set(next.colors);
+      geometry.attributes.aFrom.needsUpdate = true;
+      geometry.attributes.aColorFrom.needsUpdate = true;
     }
   }
 
   function update(dt, time, motion = 1) {
     if (progress < 1) progress = Math.min(1, progress + dt / duration);
-    const eased = easeInOutCubic(progress);
-    const driftScale = targetName === 'scatter' ? 0.055 : 0.018;
-    for (let i = 0; i < visibleCount; i++) {
-      const k = i * 3;
-      const drift = Math.sin(time * 1.3 + seeds[i]) * driftScale * motion;
-      current[k] = THREE.MathUtils.lerp(from[k], to[k], eased) + drift;
-      current[k + 1] = THREE.MathUtils.lerp(from[k + 1], to[k + 1], eased) + Math.cos(time + seeds[i]) * driftScale * 0.8 * motion;
-      current[k + 2] = THREE.MathUtils.lerp(from[k + 2], to[k + 2], eased) + drift * 0.6;
+    pulse = Math.max(0, pulse - dt * 2.15);
 
-      currentColors[k] = THREE.MathUtils.lerp(colorFrom[k], colorTo[k], eased);
-      currentColors[k + 1] = THREE.MathUtils.lerp(colorFrom[k + 1], colorTo[k + 1], eased);
-      currentColors[k + 2] = THREE.MathUtils.lerp(colorFrom[k + 2], colorTo[k + 2], eased);
-    }
-    geometry.attributes.position.needsUpdate = true;
-    geometry.attributes.color.needsUpdate = true;
-    material.size = 0.098 + Math.sin(time * 2.1) * 0.008 * motion;
+    uniforms.uProgress.value = easeInOutCubic(progress);
+    uniforms.uTime.value = time;
+    uniforms.uMotion.value = motion;
+    uniforms.uPulse.value = pulse;
   }
 
   function setDensity(value) {
-    const previousVisibleCount = visibleCount;
     density = THREE.MathUtils.clamp(value, 0.25, 1);
     visibleCount = Math.floor(count * density);
-
-    // Newly revealed particles enter at the active target instead of exposing
-    // stale positions that were intentionally skipped while hidden.
-    if (visibleCount > previousVisibleCount) {
-      const target = targets[targetName];
-      for (let i = previousVisibleCount; i < visibleCount; i++) {
-        const k = i * 3;
-        current[k] = target.positions[k];
-        current[k + 1] = target.positions[k + 1];
-        current[k + 2] = target.positions[k + 2];
-        currentColors[k] = target.colors[k];
-        currentColors[k + 1] = target.colors[k + 1];
-        currentColors[k + 2] = target.colors[k + 2];
-      }
-      geometry.attributes.position.needsUpdate = true;
-      geometry.attributes.color.needsUpdate = true;
-    }
-
     geometry.setDrawRange(0, visibleCount);
   }
 
   function setPointSize(value) {
-    material.size = THREE.MathUtils.clamp(value, 0.045, 0.2);
+    uniforms.uPointScale.value = THREE.MathUtils.clamp(value / 0.1, 0.45, 2.2);
+  }
+
+  function setPixelRatio(value) {
+    uniforms.uPixelRatio.value = Math.min(Math.max(value, 1), 3);
+  }
+
+  function triggerPulse(amount = 1) {
+    pulse = Math.max(pulse, THREE.MathUtils.clamp(amount, 0, 1.5));
   }
 
   function dispose() {
     geometry.dispose();
-    material.map?.dispose();
     material.dispose();
   }
 
@@ -158,9 +230,12 @@ export function createPhoenixParticles({ phoenixTargets, count = 9000 }) {
     setTarget,
     setDensity,
     setPointSize,
+    setPixelRatio,
+    triggerPulse,
     dispose,
     get targetName() { return targetName; },
     get activeCount() { return visibleCount; },
+    get progress() { return progress; },
     maxCount: count
   };
 }
