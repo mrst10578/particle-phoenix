@@ -151,7 +151,7 @@ export async function loadPhoenixGLB(
   }
 
   function update(time, motion = 1, dt = 0) {
-    if (mixer && dt > 0) mixer.update(dt * Math.max(0.05, motion));
+    if (mixer && dt > 0 && motion > 0) mixer.update(dt * motion);
 
     if (motion) {
       group.rotation.y = Math.sin(time * 0.24) * 0.022 + pointer.x * 0.012;
