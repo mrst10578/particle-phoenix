@@ -74,6 +74,7 @@ const vertexShader = /* glsl */`
 `;
 
 const fragmentShader = /* glsl */`
+  uniform float uOpacity;
   varying vec3 vColor;
   varying float vSeed;
   varying float vPulse;
@@ -93,7 +94,7 @@ const fragmentShader = /* glsl */`
 
     vec3 color = vColor * (0.72 + core * 1.35 + glow * 0.72);
     color += vec3(1.0, 0.34, 0.06) * glow * (0.08 + vPulse * 0.12);
-    gl_FragColor = vec4(color, alpha);
+    gl_FragColor = vec4(color, alpha * uOpacity);
   }
 `;
 
@@ -127,7 +128,8 @@ export function createPhoenixParticles({ phoenixTargets, count = 22000, pixelRat
     uPulse: { value: 0 },
     uDriftScale: { value: 0.018 },
     uPixelRatio: { value: pixelRatio },
-    uPointScale: { value: 1 }
+    uPointScale: { value: 1 },
+    uOpacity: { value: 1 }
   };
 
   const material = new THREE.ShaderMaterial({
@@ -212,7 +214,11 @@ export function createPhoenixParticles({ phoenixTargets, count = 22000, pixelRat
   }
 
   function setPixelRatio(value) {
-    uniforms.uPixelRatio.value = Math.min(Math.max(value, 1), 3);
+    uniforms.uPixelRatio.value = Math.min(Math.max(value, 1), 2.25);
+  }
+
+  function setOpacity(value) {
+    uniforms.uOpacity.value = THREE.MathUtils.clamp(value, 0, 1);
   }
 
   function triggerPulse(amount = 1) {
@@ -231,6 +237,7 @@ export function createPhoenixParticles({ phoenixTargets, count = 22000, pixelRat
     setDensity,
     setPointSize,
     setPixelRatio,
+    setOpacity,
     triggerPulse,
     dispose,
     get targetName() { return targetName; },
