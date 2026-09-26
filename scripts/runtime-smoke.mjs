@@ -90,6 +90,8 @@ try {
   const visualSummary = { ...visual };
   delete visualSummary.dataUrl;
 
+  await page.close();
+
   const mobileContext = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
