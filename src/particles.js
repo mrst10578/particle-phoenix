@@ -84,8 +84,8 @@ const fragmentShader = /* glsl */`
     if (d > 1.0) discard;
 
     float glow = pow(max(0.0, 1.0 - d), 2.15);
-    float core = smoothstep(0.36, 0.0, d);
-    float soft = smoothstep(1.0, 0.12, d);
+    float core = 1.0 - smoothstep(0.0, 0.36, d);
+    float soft = 1.0 - smoothstep(0.12, 1.0, d);
     float dustClass = smoothstep(0.0, 0.24, vSeed) * (1.0 - smoothstep(0.24, 0.46, vSeed));
     float alpha = soft * mix(0.44, 0.92, core);
     alpha *= mix(0.68, 1.0, dustClass);
