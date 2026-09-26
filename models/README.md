@@ -1,13 +1,20 @@
 # Phoenix models
 
-`royal-phoenix-v1.glb` is the canonical default model for the Royal Phoenix 3D Lab.
+`royal-phoenix-external-v1.glb` is the canonical hero model for the Royal Phoenix 3D Lab.
 
-It is generated reproducibly by `scripts/build_phoenix_glb.py` and currently uses seven material-merged geometries to keep browser draw calls low while preserving the layered Phoenix / crimson rose / crown visual language.
+It is an optimized derivative of the external CC BY Phoenix model by **rononono** from Sketchfab. For web performance, the downloaded geometry was consolidated from hundreds of mesh parts into one GLB mesh while preserving the sculpted silhouette. Runtime code applies LoPRax royal vertex coloring, PBR material tuning, automatic centering/scaling, and surface sampling for particles.
 
-## Runtime behavior
+`royal-phoenix-v1.glb` is the internally generated fallback model.
 
-- Default: the Lab loads `./models/royal-phoenix-v1.glb`.
-- `?procedural=1`: force the original procedural Three.js fallback.
-- `?model=<url-or-relative-path>`: load a replacement GLB through the same surface-sampling adapter.
+## Runtime order
 
-Any replacement model is sampled into the canonical particle target contract, so Phoenix / Rose / Crown / Scatter morphing and the Lab UI do not need to be rewritten.
+1. `?model=<url-or-relative-path>` when explicitly provided.
+2. `./models/royal-phoenix-external-v1.glb` as the default.
+3. `./models/royal-phoenix-v1.glb` as the internal GLB fallback.
+4. Procedural Three.js phoenix as the final fallback.
+
+Use `?procedural=1` to force the procedural model.
+
+All GLB paths are normalized into the same particle target contract, so Phoenix / Rose / Crown / Scatter morphing uses the active model without changing the particle engine.
+
+See `ASSET_CREDITS.md` for attribution and modification notes.
