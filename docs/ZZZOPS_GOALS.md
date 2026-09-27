@@ -5,32 +5,30 @@ GitHub Issues are disabled in this fork, so this repository-local ledger is the 
 ## Completed V1 root
 **G0 — Royal Phoenix 3D Lab** — phases 1–10 implemented and deployed.
 
-## V2 root
+## Completed V2 root
 **G20 — Royal Phoenix V2 Cinematic Hero** — implemented / verified on GitHub Pages.
 
-## V2 goal DAG
-- G21 — GLB/fallback/animation-ready adapter → G20 — implemented / verified
-- G22 — Royal physical shader + organic deformation → G21 — implemented / verified
-- G23 — GPU particle engine → G21 — implemented / verified
-- G24 — Halo/floor/ember/ash/petal/feather environment → G22,G23 — implemented / verified
-- G25 — Cinematic post-FX → G22 — implemented / verified
-- G26 — Royal Pulse + pointer/touch choreography + intro → G22,G23,G24,G25 — implemented / verified
-- G27 — Menu-free/reduced-motion/static-host contract → G26 — implemented / verified
-- G28 — CI/deploy/live WebGL verification → G27 — implemented / verified
+## Active V3 root
+**G30 — Minimal Solid Phoenix**  
+Remove the visible rear yellow/gold geometry and remove the Phoenix body/morph particle system. Keep the solid Royal Phoenix, its organic motion, material/shader, feather accents, floor/contact presence, light Royal Pulse, and only a tiny ambient floating mote field.
 
-## Verified execution state
-Final art-pass runtime revision: `77645000f42e2fe79f1c3fa7ecbcf2e1819e9c51`.
+### V3 goal DAG
+- G31 — remove Phoenix body particle engine + morph/display branches from runtime → G30 — in-progress
+- G32 — remove halo/eclipse/crown rays/constellation/petals/ember/ash/pulse-ring rear FX → G31 — planned
+- G33 — replace all remaining spatial particles with a tiny ambient mote system only → G32 — planned
+- G34 — simplify public/runtime API and keyboard controls for solid-only mode → G31,G33 — planned
+- G35 — delete dead particle/morph source modules and update static contract/docs → G34 — planned
+- G36 — deploy and verify desktop + mobile + render probe on GitHub Pages → G35 — planned
 
-Verification:
-- Quality: success.
-- GitHub Pages deploy: success.
-- Deployed Chromium Runtime Smoke: success.
-- Canonical external GLB active.
-- Ultra quality active with 36,000 desktop particles.
-- Public DOM remains menu-free.
-- GPU shader compilation succeeds.
-- Rose morph, Phoenix restore and Royal Pulse exercised.
-- Isolated Phoenix WebGL render-target probe contains rendered image data rather than a blank framebuffer.
+## V3 acceptance
+- No visible yellow/gold geometry behind the Phoenix.
+- No Phoenix body particle shell.
+- No Phoenix/Rose/Crown/Scatter morph system.
+- No star field, ember aura, ash cloud, petals, constellation, halo or crown rays.
+- Only a very small field of ambient floating motes remains.
+- Phoenix remains solid, animated, Royal-shaded, menu-free and responsive.
+- Realtime shadows remain disabled; contact shadow stays as the lightweight depth cue.
+- GitHub Actions Quality, Pages deploy and deployed Chromium Runtime Smoke pass.
 
 ## Follow-up asset opportunity
-The current external GLB remains the visual source. The runtime is now ready for a future higher-detail sculpt or rigged GLB through the same adapter. Free direct-download bird assets audited during V2 were lower-detail/low-poly and were not substituted automatically because that would not be a defensible visual upgrade.
+A future higher-quality sculpt or rigged GLB remains a drop-in geometry upgrade through the existing adapter.
